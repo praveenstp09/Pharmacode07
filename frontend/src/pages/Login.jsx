@@ -111,11 +111,11 @@ const Login = () => {
         </div>
 
         {/* Demo Credentials Box */}
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600 space-y-1">
+        {/* <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600 space-y-1">
           <div className="font-bold text-slate-800">Quick Test Credentials:</div>
           <div>👨‍🎓 Student: <code className="text-blue-600 font-mono">student@gmail.com</code> / <code className="text-slate-800 font-mono">Student@123</code></div>
           <div>🔑 Admin: <code className="text-indigo-600 font-mono">admin@pharmacode07.com</code> / <code className="text-slate-800 font-mono">Admin@123</code></div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
