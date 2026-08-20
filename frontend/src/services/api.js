@@ -1,7 +1,17 @@
 import axios from 'axios';
 
+let rawBaseUrl = import.meta.env.VITE_API_URL || '/api';
+
+// Normalize URL to always end in /api
+if (rawBaseUrl.startsWith('http')) {
+  rawBaseUrl = rawBaseUrl.replace(/\/+$/, ''); // trim trailing slashes
+  if (!rawBaseUrl.endsWith('/api')) {
+    rawBaseUrl = `${rawBaseUrl}/api`;
+  }
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: rawBaseUrl,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -24,8 +34,10 @@ api.interceptors.response.use(
   response => response,
   error => {
     if (error.response && error.response.status === 401) {
-      // If unauthorized on protected routes, we can clear token if expired
-      if (window.location.pathname.startsWith('/dashboard') || window.location.pathname.startsWith('/admin')) {
+      if (
+        window.location.pathname.startsWith('/dashboard') ||
+        window.location.pathname.startsWith('/admin')
+      ) {
         localStorage.removeItem('pharmacode_token');
         localStorage.removeItem('pharmacode_user');
         window.location.href = '/login?session=expired';

@@ -31,9 +31,18 @@ connectDB().then(() => {
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// Enable Cross-Origin Resource Sharing for Separate Frontend Site
+app.use(
+  cors({
+    origin: '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
 app.use(express.json());
+
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
@@ -41,11 +50,27 @@ if (process.env.NODE_ENV !== 'production') {
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Root Route - Pure Backend API Information
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    message: '🚀 Pharmacode07Exams Backend API Server is running',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      testSeries: '/api/test-series',
+      auth: '/api/auth',
+      materials: '/api/materials',
+      contact: '/api/contact',
+    },
+  });
+});
+
 // Health check route
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
-    platform: 'Pharmacode07Exams API',
+    platform: 'Pharmacode07Exams Backend API',
     time: new Date().toISOString(),
   });
 });
@@ -59,18 +84,6 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
-
-// Serve Frontend in Production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) {
-      return next();
-    }
-    res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
-  });
-}
 
 // Global Error Handler
 app.use(errorHandler);
