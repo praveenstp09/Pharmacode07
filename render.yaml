@@ -1,10 +1,12 @@
 services:
+  # 1. Backend Web Service (Node.js / Express API)
   - type: web
-    name: pharmacode07exams
+    name: pharmacode07-backend
     env: node
     plan: free
-    buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install
-    startCommand: cd backend && node server.js
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -12,7 +14,24 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      - key: CLIENT_URL
+        sync: false
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET
+        sync: false
+
+  # 2. Frontend Static Site (React / Vite)
+  - type: static
+    name: pharmacode07-frontend
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
         sync: false
