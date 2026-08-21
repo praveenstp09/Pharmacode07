@@ -8,6 +8,7 @@ import {
   createTestPaper,
   updateTestPaper,
   deleteTestPaper,
+  bulkAddQuestionsToPaper,
   createMaterial,
   updateMaterial,
   deleteMaterial,
@@ -20,8 +21,13 @@ import {
   createNotification,
   deleteNotification,
   getContacts,
+  addFolderItemToSeries,
+  updateFolderItem,
+  deleteFolderItem,
+  uploadFileEndpoint,
 } from '../controllers/adminController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
+import { upload } from '../utils/upload.js';
 
 const router = express.Router();
 
@@ -36,11 +42,20 @@ router.post('/test-series', createTestSeries);
 router.put('/test-series/:id', updateTestSeries);
 router.delete('/test-series/:id', deleteTestSeries);
 
+// Test Series 4-Folder Items
+router.post('/test-series/:seriesId/folders', addFolderItemToSeries);
+router.put('/folders/:id', updateFolderItem);
+router.delete('/folders/:id', deleteFolderItem);
+
+// Direct File Upload (PDFs / Images via Cloudinary or Local)
+router.post('/upload', upload.single('file'), uploadFileEndpoint);
+
 // Test Papers CRUD
 router.get('/test-series/:seriesId/papers', getAdminPapersForSeries);
 router.post('/test-papers', createTestPaper);
 router.put('/test-papers/:id', updateTestPaper);
 router.delete('/test-papers/:id', deleteTestPaper);
+router.post('/test-papers/:id/bulk-questions', bulkAddQuestionsToPaper);
 
 // Study Materials CRUD
 router.post('/materials', createMaterial);

@@ -39,8 +39,18 @@ const testPaperSchema = new mongoose.Schema(
     testSeriesId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'TestSeries',
-      required: true,
+      required: false,
+      default: null,
       index: true,
+    },
+    parentType: {
+      type: String,
+      enum: ['test_series', 'folder_item', 'single_model', 'non_pharma', 'standalone'],
+      default: 'test_series',
+    },
+    parentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
     },
     title: {
       type: String,

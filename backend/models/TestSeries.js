@@ -40,6 +40,14 @@ const testSeriesSchema = new mongoose.Schema(
       type: Number,
       default: 120,
     },
+    totalPdfs: {
+      type: Number,
+      default: 0,
+    },
+    validityDays: {
+      type: Number,
+      default: 365, // 1 Year full access
+    },
     price: {
       type: Number,
       required: true,

@@ -39,7 +39,7 @@ const Contact = () => {
           Support & Inquiries
         </span>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900">
-          Get in Touch with Pharmacode07Exams
+          Get in Touch with PharmaCode07
         </h1>
         <p className="text-sm text-slate-500">
           Have an inquiry about mock test series, payments, or test paper access? Send us a message and our team will get back to you promptly.
@@ -65,15 +65,7 @@ const Contact = () => {
                 </div>
               </div>
 
-              <div className="flex items-start space-x-3">
-                <Phone className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="text-xs text-slate-400 font-semibold">Phone & WhatsApp Support</div>
-                  <a href="tel:+919336331163" className="font-bold text-white hover:text-emerald-300">
-                    +91 9336331163
-                  </a>
-                </div>
-              </div>
+
 
               <div className="flex items-start space-x-3">
                 <MapPin className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />

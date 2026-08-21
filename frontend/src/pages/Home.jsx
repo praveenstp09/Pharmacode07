@@ -18,6 +18,9 @@ import {
   Play,
   ShoppingCart,
   Download,
+  Mail,
+  MessageSquare,
+  Send,
 } from 'lucide-react';
 import api from '../services/api';
 import { useCart } from '../context/CartContext';
@@ -27,6 +30,33 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [openFaq, setOpenFaq] = useState(null);
   const { addToCart } = useCart();
+
+  // Contact Admin Form State
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    subject: 'General Inquiry',
+    message: '',
+  });
+  const [contactSending, setContactSending] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState(false);
+
+  const handleContactSubmit = async e => {
+    e.preventDefault();
+    setContactSending(true);
+    try {
+      const res = await api.post('/contact', contactForm);
+      if (res.data.success) {
+        setContactSuccess(true);
+        setContactForm({ name: '', email: '', subject: 'General Inquiry', message: '' });
+        setTimeout(() => setContactSuccess(false), 7000);
+      }
+    } catch (err) {
+      alert('Failed to send message: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setContactSending(false);
+    }
+  };
 
   useEffect(() => {
     const fetchHomeData = async () => {
@@ -63,7 +93,7 @@ const Home = () => {
     },
     {
       q: 'Can I access the website on mobile phones?',
-      a: 'Absolutely! Pharmacode07Exams is 100% mobile responsive. You can attempt tests and read PDF notes comfortably on any Android phone, iPhone, tablet, or laptop.',
+      a: 'Absolutely! PharmaCode07 is 100% mobile responsive. You can attempt tests and read PDF notes comfortably on any Android phone, iPhone, tablet, or laptop.',
     },
   ];
 
@@ -93,7 +123,10 @@ const Home = () => {
 
               <p className="text-slate-300 text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 leading-relaxed">
                 Specialized test series and model papers for{' '}
-                <strong className="text-white font-semibold">GSSSB Junior Pharmacist, UPSSSC, RRB, AIIMS & GPAT</strong>. Practice with real exam timers, negative marking, and instant comprehensive explanations.
+                <strong className="text-white font-semibold">
+                  ESIC, AIIMS, BFUHS, OSSSC, GSSSB, UPSSSC, MP, Bihar & All State Pharmacist Exams
+                </strong>
+                . Practice with real exam timers, negative marking (-0.25), and instant comprehensive explanations.
               </p>
 
               {/* Action Buttons */}
@@ -127,6 +160,34 @@ const Home = () => {
                 <div className="flex items-center space-x-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <span>Instant Detailed Solutions</span>
+                </div>
+              </div>
+
+              {/* Target State & Central Exams Bar */}
+              <div className="pt-4 space-y-2 text-left">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Targeted Pharmacist Exams:
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'ESIC',
+                    'AIIMS',
+                    'BFUHS',
+                    'OSSSC',
+                    'GSSSB',
+                    'UPSSSC',
+                    'MP Vyapam',
+                    'Bihar BTSC',
+                    'All State Exams',
+                  ].map(badge => (
+                    <Link
+                      key={badge}
+                      to={`/test-series?exam=${encodeURIComponent(badge)}`}
+                      className="px-3 py-1 rounded-lg bg-white/10 hover:bg-blue-600/40 border border-white/15 text-[11px] font-bold text-blue-200 hover:text-white transition"
+                    >
+                      {badge}
+                    </Link>
+                  ))}
                 </div>
               </div>
             </div>
@@ -362,7 +423,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* 4. WHY CHOOSE PHARMACODE07EXAMS */}
+      {/* 4. WHY CHOOSE PHARMACODE07 */}
       <section className="bg-slate-900 text-white py-16 sm:py-20 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
@@ -370,7 +431,7 @@ const Home = () => {
               Designed For High Ranking
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
-              Why Students Trust Pharmacode07Exams
+              Why Students Trust PharmaCode07
             </h2>
             <p className="text-slate-400 text-sm sm:text-base">
               A comprehensive CBT testing environment that gives you the exact feel of government pharmacist recruitment examinations.
@@ -502,28 +563,133 @@ const Home = () => {
         </div>
       </section>
 
-      {/* 7. BOTTOM CTA & DIRECT SUPPORT */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+      {/* 7. BOTTOM CTA */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         <div className="bg-gradient-to-r from-blue-700 via-indigo-800 to-blue-900 rounded-3xl p-8 sm:p-12 text-white shadow-2xl text-center space-y-6">
           <h2 className="text-2xl sm:text-4xl font-extrabold">
             Ready to Crack Your Pharmacist Recruitment Exam?
           </h2>
           <p className="text-blue-200 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
-            Join thousands of pharmacy aspirants preparing with Pharmacode07Exams. Start with our 120 MCQ Model Papers today.
+            Join thousands of pharmacy aspirants preparing with PharmaCode07. Start practicing with our 4-Folder Test Series and high-yield notes today.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <Link
               to="/test-series"
               className="w-full sm:w-auto px-8 py-3.5 bg-white text-blue-900 font-extrabold rounded-xl shadow-lg hover:bg-yellow-300 transition text-base"
             >
-              Get Test Series Now
+              Explore Test Series Now →
             </Link>
-            <a
-              href="tel:+919336331163"
-              className="w-full sm:w-auto px-6 py-3.5 bg-blue-950/60 hover:bg-blue-950 border border-white/20 text-white font-semibold rounded-xl transition text-base"
+            <Link
+              to="/materials"
+              className="w-full sm:w-auto px-7 py-3.5 bg-blue-950/60 hover:bg-blue-950 border border-white/20 text-white font-semibold rounded-xl transition text-base"
             >
-              📞 Call: +91 9336331163
-            </a>
+              🎓 Free Study Notes & PYQs
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. CONTACT ADMIN & STUDENT QUERY SECTION (BEFORE FOOTER) */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 shadow-xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="lg:col-span-5 space-y-4">
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider flex items-center space-x-1">
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Direct Support to Students</span>
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+              Have a Doubt or Need Help? Contact Admin
+            </h2>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Facing issues with test access, notes download, payment, or have a question regarding pharmacy exams? Send a direct message and our admin team will reply to your email promptly.
+            </p>
+            <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-center space-x-3">
+              <Mail className="w-5 h-5 text-blue-600 flex-shrink-0" />
+              <div className="text-xs">
+                <span className="font-bold text-slate-700 block">Official Support Email</span>
+                <a href="mailto:royaldcx07031999@gmail.com" className="font-extrabold text-blue-600 hover:underline">
+                  royaldcx07031999@gmail.com
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-7 bg-slate-50 p-6 sm:p-8 rounded-2xl border border-slate-200">
+            {contactSuccess && (
+              <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>🎉 Message sent successfully! Admin will respond to your email shortly.</span>
+              </div>
+            )}
+
+            <form onSubmit={handleContactSubmit} className="space-y-4 text-xs sm:text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700">Your Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={contactForm.name}
+                    onChange={e => setContactForm({ ...contactForm, name: e.target.value })}
+                    placeholder="e.g. Rahul Sharma"
+                    className="w-full mt-1 p-2.5 bg-white border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700">Your Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={contactForm.email}
+                    onChange={e => setContactForm({ ...contactForm, email: e.target.value })}
+                    placeholder="student@example.com"
+                    className="w-full mt-1 p-2.5 bg-white border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700">Subject / Category</label>
+                <select
+                  value={contactForm.subject}
+                  onChange={e => setContactForm({ ...contactForm, subject: e.target.value })}
+                  className="w-full mt-1 p-2.5 bg-white border border-slate-200 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  <option value="General Inquiry">General Inquiry</option>
+                  <option value="Test Series Access">Test Series / CBT Access Query</option>
+                  <option value="Study Materials & Notes">Study Notes / PYQ Request</option>
+                  <option value="Payment or Order Issue">Payment / Order Issue</option>
+                  <option value="Other Feedback">Suggestion / Other Feedback</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700">Your Message</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={contactForm.message}
+                  onChange={e => setContactForm({ ...contactForm, message: e.target.value })}
+                  placeholder="Describe your doubt or question in detail..."
+                  className="w-full mt-1 p-2.5 bg-white border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={contactSending}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-sm"
+              >
+                {contactSending ? (
+                  <span>Sending Message...</span>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Send Message Directly to Admin</span>
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         </div>
       </section>

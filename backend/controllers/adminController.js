@@ -7,47 +7,148 @@ import Coupon from '../models/Coupon.js';
 import StudyMaterial from '../models/StudyMaterial.js';
 import Notification from '../models/Notification.js';
 import Contact from '../models/Contact.js';
+import FolderItem from '../models/FolderItem.js';
+import SingleModelPaper from '../models/SingleModelPaper.js';
+import NonPharmaResource from '../models/NonPharmaResource.js';
+import { uploadToCloudinaryOrLocal } from '../utils/upload.js';
 
-// @desc    Get Admin dashboard analytics & stats
+// Helper: build array of last N days {date, count}
+const buildDailyTrend = (docs, days = 7) => {
+  const result = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const dayStart = new Date(now);
+    dayStart.setDate(now.getDate() - i);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const count = docs.filter(d => {
+      const created = new Date(d.createdAt);
+      return created >= dayStart && created <= dayEnd;
+    }).length;
+
+    const label = dayStart.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    result.push({ label, count });
+  }
+  return result;
+};
+
+const buildRevenueTrend = (orders, days = 7) => {
+  const result = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const dayStart = new Date(now);
+    dayStart.setDate(now.getDate() - i);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const revenue = orders
+      .filter(o => {
+        const created = new Date(o.createdAt);
+        return created >= dayStart && created <= dayEnd;
+      })
+      .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+    const label = dayStart.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    result.push({ label, amount: Math.round(revenue) });
+  }
+  return result;
+};
+
+// @desc    Get Admin dashboard analytics & stats (Rich)
 // @route   GET /api/admin/stats
 // @access  Admin
 export const getAdminStats = async (req, res) => {
   try {
+    // ── Core Counts ──
     const totalStudents = await User.countDocuments({ role: 'student' });
+    const totalAdmins = await User.countDocuments({ role: 'admin' });
     const totalSeries = await TestSeries.countDocuments();
     const totalPapers = await TestPaper.countDocuments();
     const totalAttempts = await TestAttempt.countDocuments();
+    const totalFolderItems = await FolderItem.countDocuments();
+    const totalStudyMaterials = await StudyMaterial.countDocuments();
+    const totalSingleModels = await SingleModelPaper.countDocuments();
+    const totalNonPharma = await NonPharmaResource.countDocuments();
+    const totalCoupons = await Coupon.countDocuments();
     const totalOrders = await Order.countDocuments({ paymentStatus: 'completed' });
-    
-    // Calculate total revenue
-    const completedOrders = await Order.find({ paymentStatus: 'completed' });
-    const totalRevenue = completedOrders.reduce((acc, order) => acc + (order.totalAmount || 0), 0);
 
-    // Recent 5 orders
+    // ── Revenue ──
+    const completedOrders = await Order.find({ paymentStatus: 'completed' });
+    const totalRevenue = completedOrders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+
+    // ── 7-Day Trends ──
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentUsers = await User.find({ role: 'student', createdAt: { $gte: thirtyDaysAgo } }).sort({ createdAt: -1 });
+    const recentCompletedOrders = await Order.find({ paymentStatus: 'completed', createdAt: { $gte: thirtyDaysAgo } }).sort({ createdAt: -1 });
+    const recentAttemptsRaw = await TestAttempt.find({ createdAt: { $gte: thirtyDaysAgo } }).sort({ createdAt: -1 });
+
+    const registrationTrend = buildDailyTrend(recentUsers, 7);
+    const revenueTrend = buildRevenueTrend(recentCompletedOrders, 7);
+    const attemptsTrend = buildDailyTrend(recentAttemptsRaw, 7);
+
+    // ── Recent 8 Users ──
+    const latestUsers = await User.find({ role: 'student' })
+      .select('name email mobile createdAt')
+      .sort({ createdAt: -1 })
+      .limit(8);
+
+    // ── Recent 6 Orders ──
     const recentOrders = await Order.find()
       .populate('userId', 'name email mobile')
       .sort({ createdAt: -1 })
-      .limit(5);
+      .limit(6);
 
-    // Recent 5 test attempts
+    // ── Recent 6 Test Attempts ──
     const recentAttempts = await TestAttempt.find()
       .populate('userId', 'name email')
       .populate('testSeriesId', 'title')
       .populate('testPaperId', 'title')
       .sort({ completedAt: -1 })
-      .limit(5);
+      .limit(6);
+
+    // ── Top 5 Test Series (by enrollments) ──
+    const allSeries = await TestSeries.find().sort({ enrolledCount: -1 }).limit(5).select('title examType enrolledCount price discountPrice');
+
+    // ── Content Inventory by Pillar ──
+    const contentInventory = {
+      testSeriesPacks: totalSeries,
+      folderItems: totalFolderItems,
+      studyMaterials: totalStudyMaterials,
+      singleModelPapers: totalSingleModels,
+      nonPharmaResources: totalNonPharma,
+      totalCBTPapers: totalPapers,
+    };
+
+    // ── Study Material Breakdown ──
+    const bPharmCount = await StudyMaterial.countDocuments({ courseType: 'B.Pharm' });
+    const dPharmCount = await StudyMaterial.countDocuments({ courseType: 'D.Pharm' });
+    const examNotesCount = await StudyMaterial.countDocuments({ courseType: 'Exam' });
 
     res.json({
       success: true,
       data: {
         totalStudents,
+        totalAdmins,
         totalSeries,
         totalPapers,
         totalAttempts,
         totalOrders,
         totalRevenue: Math.round(totalRevenue),
+        registrationTrend,
+        revenueTrend,
+        attemptsTrend,
+        latestUsers,
         recentOrders,
         recentAttempts,
+        topSeries: allSeries,
+        contentInventory,
+        studyBreakdown: { bPharmCount, dPharmCount, examNotesCount },
+        totalCoupons,
       },
     });
   } catch (error) {
@@ -160,6 +261,36 @@ export const deleteTestPaper = async (req, res) => {
     });
 
     res.json({ success: true, message: 'Test Paper deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const bulkAddQuestionsToPaper = async (req, res) => {
+  try {
+    const { questions } = req.body;
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please provide an array of questions' });
+    }
+
+    const paper = await TestPaper.findById(req.params.id);
+    if (!paper) return res.status(404).json({ success: false, message: 'Test Paper not found' });
+
+    paper.questions.push(...questions);
+    await paper.save();
+
+    // Update totalQuestions in TestSeries
+    const papers = await TestPaper.find({ testSeriesId: paper.testSeriesId });
+    const totalQ = papers.reduce((sum, p) => sum + (p.questions ? p.questions.length : 0), 0);
+    await TestSeries.findByIdAndUpdate(paper.testSeriesId, {
+      totalQuestions: totalQ,
+    });
+
+    res.json({
+      success: true,
+      message: `Successfully imported ${questions.length} questions into ${paper.title}!`,
+      totalQuestions: paper.questions.length,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -293,6 +424,135 @@ export const getContacts = async (req, res) => {
   try {
     const contacts = await Contact.find().sort({ createdAt: -1 });
     res.json({ success: true, data: contacts });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ======================== TEST SERIES FOLDER ITEMS ========================
+export const addFolderItemToSeries = async (req, res) => {
+  try {
+    const { seriesId } = req.params;
+    const {
+      folderType,
+      contentType,
+      title,
+      subjectName,
+      pdfUrl,
+      year,
+      isFreeDemo,
+      questions,
+      durationMinutes,
+      totalMarks,
+      difficulty,
+    } = req.body;
+
+    const series = await TestSeries.findById(seriesId);
+    if (!series) return res.status(404).json({ success: false, message: 'Series not found' });
+
+    let testPaperId = null;
+
+    if (contentType === 'cbt' && Array.isArray(questions) && questions.length > 0) {
+      const paper = await TestPaper.create({
+        testSeriesId: series._id,
+        title,
+        durationMinutes: durationMinutes || 100,
+        totalMarks: totalMarks || questions.length,
+        positiveMarks: 1,
+        negativeMarks: 0.25,
+        difficulty: difficulty || 'Medium',
+        questions,
+        parentType: 'folder_item',
+      });
+      testPaperId = paper._id;
+    }
+
+    const item = await FolderItem.create({
+      testSeriesId: series._id,
+      folderType,
+      contentType,
+      title,
+      subjectName: subjectName || '',
+      testPaperId,
+      pdfUrl: pdfUrl || '',
+      year: year || 2026,
+      totalQuestions: questions ? questions.length : 100,
+      durationMinutes: durationMinutes || 100,
+      isFreeDemo: !!isFreeDemo,
+      published: true,
+    });
+
+    // Recalculate totals on series
+    const allItems = await FolderItem.find({ testSeriesId: series._id });
+    const cbtCount = allItems.filter(i => i.contentType === 'cbt').length;
+    const pdfCount = allItems.filter(i => i.contentType !== 'cbt').length;
+    series.totalTests = cbtCount;
+    series.totalPdfs = pdfCount;
+    await series.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Item added to folder successfully!',
+      data: item,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateFolderItem = async (req, res) => {
+  try {
+    const item = await FolderItem.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
+    res.json({ success: true, message: 'Folder item updated', data: item });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteFolderItem = async (req, res) => {
+  try {
+    const item = await FolderItem.findById(req.params.id);
+    if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
+
+    if (item.testPaperId) {
+      await TestPaper.findByIdAndDelete(item.testPaperId);
+    }
+    await item.deleteOne();
+
+    // Recalculate totals on series
+    const allItems = await FolderItem.find({ testSeriesId: item.testSeriesId });
+    const cbtCount = allItems.filter(i => i.contentType === 'cbt').length;
+    const pdfCount = allItems.filter(i => i.contentType !== 'cbt').length;
+    await TestSeries.findByIdAndUpdate(item.testSeriesId, {
+      totalTests: cbtCount,
+      totalPdfs: pdfCount,
+    });
+
+    res.json({ success: true, message: 'Item deleted from folder' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ======================== FILE UPLOADS (CLOUDINARY / LOCAL) ========================
+export const uploadFileEndpoint = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    const folder = req.body.folder || 'pharmacode_docs';
+    const uploadResult = await uploadToCloudinaryOrLocal(req.file, folder);
+
+    res.json({
+      success: true,
+      message: 'File uploaded successfully!',
+      data: uploadResult,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

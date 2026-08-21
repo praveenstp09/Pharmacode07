@@ -26,7 +26,19 @@ const TestSeriesMarketplace = () => {
   const { addToCart } = useCart();
   const { user } = useAuth();
 
-  const exams = ['All', 'GSSSB', 'UPSSSC', 'RRB', 'AIIMS', 'GPAT'];
+  const exams = [
+    'All',
+    'GSSSB',
+    'ESIC',
+    'AIIMS',
+    'BFUHS',
+    'OSSSC',
+    'UPSSSC',
+    'MP Vyapam',
+    'Bihar BTSC',
+    'RRB',
+    'State Exams',
+  ];
   const categories = ['All', 'Competitive Exam', 'Model Paper', 'Previous Year'];
 
   useEffect(() => {

@@ -2,14 +2,17 @@ import crypto from 'crypto';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
 import Coupon from '../models/Coupon.js';
+import Purchase from '../models/Purchase.js';
 import razorpayInstance from '../config/razorpay.js';
 
-// Helper to auto-enroll user in purchased items
-const enrollUserInItems = async (userId, items) => {
+// Helper to auto-enroll user in purchased items with 365 days validity
+const enrollUserInItems = async (userId, items, orderId = null) => {
   const user = await User.findById(userId);
   if (!user) return;
 
-  items.forEach(item => {
+  const oneYearFromNow = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+  for (const item of items) {
     if (item.itemType === 'TestSeries') {
       if (!user.purchasedTests.some(id => id.toString() === item.itemId.toString())) {
         user.purchasedTests.push(item.itemId);
@@ -19,7 +22,22 @@ const enrollUserInItems = async (userId, items) => {
         user.purchasedMaterials.push(item.itemId);
       }
     }
-  });
+
+    // Upsert Purchase record with 365 days validity
+    await Purchase.findOneAndUpdate(
+      { userId, itemType: item.itemType, itemId: item.itemId },
+      {
+        userId,
+        itemType: item.itemType,
+        itemId: item.itemId,
+        orderId,
+        purchasedAt: new Date(),
+        expiresAt: oneYearFromNow,
+        isActive: true,
+      },
+      { upsert: true, new: true }
+    );
+  }
 
   await user.save();
 };

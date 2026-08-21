@@ -1,0 +1,20 @@
+import express from 'express';
+import {
+  getNonPharmaResources,
+  createNonPharmaResource,
+  updateNonPharmaResource,
+  deleteNonPharmaResource,
+} from '../controllers/nonPharmaController.js';
+import { protect, adminOnly } from '../middleware/auth.js';
+
+const router = express.Router();
+
+// Public route
+router.get('/', getNonPharmaResources);
+
+// Admin-only routes
+router.post('/', protect, adminOnly, createNonPharmaResource);
+router.put('/:id', protect, adminOnly, updateNonPharmaResource);
+router.delete('/:id', protect, adminOnly, deleteNonPharmaResource);
+
+export default router;

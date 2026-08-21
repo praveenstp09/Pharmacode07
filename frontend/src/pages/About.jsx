@@ -47,7 +47,7 @@ const About = () => {
         <div className="space-y-1">
           <h3 className="text-xl font-bold">Have Questions or Need Help?</h3>
           <p className="text-xs sm:text-sm text-blue-100">
-            Our support team is available via Phone & WhatsApp at +91 9336331163.
+            Our support team is available via Email at royaldcx07031999@gmail.com.
           </p>
         </div>
         <Link

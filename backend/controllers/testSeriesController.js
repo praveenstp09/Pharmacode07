@@ -1,6 +1,8 @@
 import TestSeries from '../models/TestSeries.js';
 import TestPaper from '../models/TestPaper.js';
+import FolderItem from '../models/FolderItem.js';
 import User from '../models/User.js';
+import Purchase from '../models/Purchase.js';
 
 // @desc    Get all published test series
 // @route   GET /api/test-series
@@ -37,9 +39,9 @@ export const getTestSeries = async (req, res) => {
   }
 };
 
-// @desc    Get single test series by slug with its test papers summary
+// @desc    Get single test series by slug with 4-Folder items breakdown & Demo / Lock state
 // @route   GET /api/test-series/:slug
-// @access  Public
+// @access  Public (Optionally authenticated)
 export const getTestSeriesBySlug = async (req, res) => {
   try {
     const series = await TestSeries.findOne({ slug: req.params.slug, published: true });
@@ -47,29 +49,101 @@ export const getTestSeriesBySlug = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Test Series not found' });
     }
 
-    // Get list of test papers belonging to this series (without questions)
-    const papers = await TestPaper.find({ testSeriesId: series._id, published: true })
+    // Check if current user has active purchased access or is admin
+    let isFullUnlocked = series.isFree;
+    if (req.user) {
+      if (req.user.role === 'admin') {
+        isFullUnlocked = true;
+      } else {
+        const hasDirectPurchase = req.user.purchasedTests?.some(
+          id => id.toString() === series._id.toString()
+        );
+        const purchaseRecord = await Purchase.findOne({
+          userId: req.user._id,
+          itemType: 'TestSeries',
+          itemId: series._id,
+          expiresAt: { $gt: new Date() },
+          isActive: true,
+        });
+
+        if (hasDirectPurchase || purchaseRecord) {
+          isFullUnlocked = true;
+        }
+      }
+    }
+
+    // Fetch all items inside the 4 folders
+    const folderItems = await FolderItem.find({ testSeriesId: series._id, published: true })
+      .populate('testPaperId', 'durationMinutes totalMarks totalQuestions positiveMarks negativeMarks difficulty')
+      .sort({ sortOrder: 1, createdAt: 1 });
+
+    // Group items into the 4 structured folders
+    const folders = {
+      cbtMixed: [],
+      pyqs: [],
+      mcqPdfs: [],
+      subjectWise: {}, // { "Pharmacology": [ ...items ] }
+    };
+
+    folderItems.forEach(item => {
+      const isItemUnlocked = isFullUnlocked || item.isFreeDemo;
+      const formattedItem = {
+        _id: item._id,
+        title: item.title,
+        contentType: item.contentType,
+        folderType: item.folderType,
+        subjectName: item.subjectName,
+        year: item.year,
+        totalQuestions: item.totalQuestions,
+        durationMinutes: item.durationMinutes,
+        isFreeDemo: item.isFreeDemo,
+        isLocked: !isItemUnlocked,
+        testPaperId: item.testPaperId ? item.testPaperId._id : null,
+        paperDetails: item.testPaperId || null,
+        pdfUrl: isItemUnlocked ? item.pdfUrl : '', // Hide PDF URL if locked
+      };
+
+      if (item.folderType === 'cbt_mixed') {
+        folders.cbtMixed.push(formattedItem);
+      } else if (item.folderType === 'pyq') {
+        folders.pyqs.push(formattedItem);
+      } else if (item.folderType === 'mcq_pdf') {
+        folders.mcqPdfs.push(formattedItem);
+      } else if (item.folderType === 'subject_wise') {
+        const sub = item.subjectName || 'General';
+        if (!folders.subjectWise[sub]) folders.subjectWise[sub] = [];
+        folders.subjectWise[sub].push(formattedItem);
+      }
+    });
+
+    // Also get standard test papers if any existed in legacy format
+    const legacyPapers = await TestPaper.find({ testSeriesId: series._id, published: true })
       .select('title paperNumber durationMinutes totalMarks positiveMarks negativeMarks difficulty questions')
       .sort({ paperNumber: 1 });
-
-    // Sanitize paper list: include question count instead of full question details
-    const papersSummary = papers.map(p => ({
-      _id: p._id,
-      title: p.title,
-      paperNumber: p.paperNumber,
-      durationMinutes: p.durationMinutes,
-      totalMarks: p.totalMarks,
-      positiveMarks: p.positiveMarks,
-      negativeMarks: p.negativeMarks,
-      difficulty: p.difficulty,
-      questionsCount: p.questions ? p.questions.length : 0,
-    }));
 
     res.json({
       success: true,
       data: {
         series,
-        papers: papersSummary,
+        isUnlocked: isFullUnlocked,
+        folders,
+        stats: {
+          cbtMixedCount: folders.cbtMixed.length,
+          pyqsCount: folders.pyqs.length,
+          mcqPdfsCount: folders.mcqPdfs.length,
+          subjectCount: Object.keys(folders.subjectWise).length,
+          totalFolderItems: folderItems.length,
+        },
+        legacyPapers: legacyPapers.map((p, idx) => ({
+          _id: p._id,
+          title: p.title,
+          paperNumber: p.paperNumber,
+          durationMinutes: p.durationMinutes,
+          totalMarks: p.totalMarks,
+          isFreeDemo: idx === 0, // 1st paper is free demo
+          isLocked: !isFullUnlocked && idx !== 0,
+          questionsCount: p.questions ? p.questions.length : 0,
+        })),
       },
     });
   } catch (error) {
@@ -77,9 +151,9 @@ export const getTestSeriesBySlug = async (req, res) => {
   }
 };
 
-// @desc    Get single test paper for attempt (Protected: Checks purchase or free)
+// @desc    Get single test paper for attempt (Checks purchase, admin, or free demo)
 // @route   GET /api/test-series/paper/:paperId
-// @access  Private
+// @access  Private (or authenticated guest)
 export const getTestPaperForAttempt = async (req, res) => {
   try {
     const paper = await TestPaper.findById(req.params.paperId).populate('testSeriesId');
@@ -89,23 +163,55 @@ export const getTestPaperForAttempt = async (req, res) => {
 
     const series = paper.testSeriesId;
     const user = await User.findById(req.user.id);
-
-    // Verify access
-    const isPurchased = user.purchasedTests.some(
-      id => id.toString() === series._id.toString()
-    );
     const isAdmin = user.role === 'admin';
-    const isFree = series.isFree;
 
-    if (!isPurchased && !isAdmin && !isFree) {
+    // Check if this paper is attached to a FolderItem with isFreeDemo
+    const folderItem = await FolderItem.findOne({ testPaperId: paper._id });
+    const isFreeDemo = folderItem?.isFreeDemo || paper.paperNumber === 1;
+
+    let hasAccess = isAdmin || isFreeDemo;
+
+    if (!hasAccess && series) {
+      const isPurchased = user.purchasedTests?.some(
+        id => id.toString() === series._id.toString()
+      );
+      const purchaseRecord = await Purchase.findOne({
+        userId: user._id,
+        itemType: 'TestSeries',
+        itemId: series._id,
+        expiresAt: { $gt: new Date() },
+        isActive: true,
+      });
+
+      if (isPurchased || purchaseRecord || series.isFree) {
+        hasAccess = true;
+      }
+    }
+
+    // Check if it's a single model paper or non-pharma paper
+    if (!hasAccess && paper.parentType === 'single_model') {
+      const purchase = await Purchase.findOne({
+        userId: user._id,
+        itemType: 'SingleModelPaper',
+        itemId: paper.parentId,
+        isActive: true,
+      });
+      if (purchase) hasAccess = true;
+    }
+
+    if (!hasAccess && paper.parentType === 'non_pharma') {
+      hasAccess = true; // Non-pharma free quizzes
+    }
+
+    if (!hasAccess) {
       return res.status(403).json({
         success: false,
-        message: 'You have not purchased this test series. Please purchase to unlock.',
+        message: 'This test paper is locked. Please purchase the full test series package to unlock all tests.',
         isLocked: true,
       });
     }
 
-    // Return paper with questions, but HIDE correctOptionIndex and explanation during active attempt!
+    // Return paper questions (HIDE correctOptionIndex & explanation during attempt)
     const sanitizedQuestions = paper.questions.map((q, idx) => ({
       _id: q._id,
       index: idx,
@@ -120,8 +226,8 @@ export const getTestPaperForAttempt = async (req, res) => {
       success: true,
       data: {
         _id: paper._id,
-        testSeriesId: series._id,
-        testSeriesTitle: series.title,
+        testSeriesId: series ? series._id : null,
+        testSeriesTitle: series ? series.title : paper.title,
         title: paper.title,
         paperNumber: paper.paperNumber,
         durationMinutes: paper.durationMinutes,
@@ -164,7 +270,6 @@ export const getPracticeMCQs = async (req, res) => {
       });
     });
 
-    // Shuffle
     allQuestions.sort(() => 0.5 - Math.random());
     const selected = allQuestions.slice(0, parseInt(limit));
 

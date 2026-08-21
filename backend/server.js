@@ -18,6 +18,8 @@ import couponRoutes from './routes/couponRoutes.js';
 import materialRoutes from './routes/materialRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import singleModelRoutes from './routes/singleModelRoutes.js';
+import nonPharmaRoutes from './routes/nonPharmaRoutes.js';
 
 dotenv.config();
 
@@ -84,6 +86,8 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/single-models', singleModelRoutes);
+app.use('/api/non-pharma', nonPharmaRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

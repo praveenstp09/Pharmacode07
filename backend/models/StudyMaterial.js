@@ -15,26 +15,37 @@ const studyMaterialSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      required: true,
+      default: '',
+    },
+    courseType: {
+      type: String,
+      enum: ['B.Pharm', 'D.Pharm', 'Exam', 'General'],
+      default: 'Exam',
+      index: true,
+    },
+    semesterOrYear: {
+      type: String,
+      default: 'General', // e.g. "Semester 1" .. "Semester 8" or "1st Year" / "2nd Year"
+      index: true,
+    },
+    chapter: {
+      type: String,
+      default: '', // e.g. "Chapter 1: Dosage Forms"
+    },
+    materialType: {
+      type: String,
+      enum: ['chapter_notes', 'pyq_paper', 'revision_sheet', 'formula_sheet', 'drug_list', 'other'],
+      default: 'chapter_notes',
     },
     category: {
       type: String,
-      enum: [
-        'Notes',
-        'PDF Notes',
-        'Short Notes',
-        'PYQ',
-        'Revision Notes',
-        'Formula Sheets',
-        'Drug Lists',
-        'Exam Notifications',
-      ],
-      required: true,
+      default: 'Notes',
       index: true,
     },
     subject: {
       type: String,
       default: 'General Pharmacy',
+      index: true,
     },
     examType: {
       type: String,

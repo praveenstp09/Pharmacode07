@@ -14,6 +14,8 @@ import TestAttemptScreen from './pages/TestAttemptScreen';
 import TestResult from './pages/TestResult';
 import PracticeQuiz from './pages/PracticeQuiz';
 import StudyMaterials from './pages/StudyMaterials';
+import SingleModelPapers from './pages/SingleModelPapers';
+import NonPharmaHub from './pages/NonPharmaHub';
 import PYQs from './pages/PYQs';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
@@ -55,6 +57,8 @@ function App() {
               <Route path="/result/:attemptId" element={<TestResult />} />
               <Route path="/practice" element={<PracticeQuiz />} />
               <Route path="/materials" element={<StudyMaterials />} />
+              <Route path="/model-papers" element={<SingleModelPapers />} />
+              <Route path="/non-pharma" element={<NonPharmaHub />} />
               <Route path="/pyqs" element={<PYQs />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />

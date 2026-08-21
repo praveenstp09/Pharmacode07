@@ -7,7 +7,7 @@ export const PrivacyPolicy = () => {
       <p className="text-sm text-slate-500">Last updated: August 2026</p>
       <div className="space-y-4 text-sm leading-relaxed">
         <p>
-          At <strong>Pharmacode07Exams</strong>, accessible from our online portal, one of our main priorities is the privacy of our visitors and students. This Privacy Policy document contains types of information that is collected and recorded by Pharmacode07Exams and how we use it.
+          At <strong>PharmaCode07</strong>, accessible from our online portal, one of our main priorities is the privacy of our visitors and students. This Privacy Policy document contains types of information that is collected and recorded by PharmaCode07 and how we use it.
         </p>
         <h2 className="text-lg font-bold text-slate-900 pt-2">Information We Collect</h2>
         <p>
@@ -39,11 +39,11 @@ export const Terms = () => {
       <p className="text-sm text-slate-500">Last updated: August 2026</p>
       <div className="space-y-4 text-sm leading-relaxed">
         <p>
-          Welcome to <strong>Pharmacode07Exams</strong>. By accessing this website and purchasing model papers or test series, you agree to comply with and be bound by the following terms and conditions.
+          Welcome to <strong>PharmaCode07</strong>. By accessing this website and purchasing model papers or test series, you agree to comply with and be bound by the following terms and conditions.
         </p>
         <h2 className="text-lg font-bold text-slate-900 pt-2">Intellectual Property Rights</h2>
         <p>
-          All mock test questions, explanations, model papers, and downloadable study materials are the intellectual property of Pharmacode07Exams. You may not copy, republish, resell, or distribute these materials without explicit written consent.
+          All mock test questions, explanations, model papers, and downloadable study materials are the intellectual property of PharmaCode07. You may not copy, republish, resell, or distribute these materials without explicit written consent.
         </p>
         <h2 className="text-lg font-bold text-slate-900 pt-2">Account Responsibility</h2>
         <p>
@@ -63,7 +63,7 @@ export const RefundPolicy = () => {
       <p className="text-sm text-slate-500">Last updated: August 2026</p>
       <div className="space-y-4 text-sm leading-relaxed">
         <p>
-          At <strong>Pharmacode07Exams</strong>, we strive to deliver the highest quality mock test series and study materials for pharmacy competitive exams.
+          At <strong>PharmaCode07</strong>, we strive to deliver the highest quality mock test series and study materials for pharmacy competitive exams.
         </p>
         <h2 className="text-lg font-bold text-slate-900 pt-2">Digital Products Policy</h2>
         <p>
@@ -74,8 +74,7 @@ export const RefundPolicy = () => {
           If your account was debited multiple times for a single order due to a technical glitch, or if your test was not activated after payment, please contact our support team immediately at{' '}
           <a href="mailto:royaldcx07031999@gmail.com" className="text-blue-600 font-bold">
             royaldcx07031999@gmail.com
-          </a>{' '}
-          or call <strong>+91 9336331163</strong>. Verified duplicate charges will be refunded to your original payment method within 5–7 business days.
+          </a>. Verified duplicate charges will be refunded to your original payment method within 5–7 business days.
         </p>
       </div>
     </div>

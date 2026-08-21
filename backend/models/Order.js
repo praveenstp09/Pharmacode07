@@ -7,7 +7,7 @@ const orderItemSchema = new mongoose.Schema({
   },
   itemType: {
     type: String,
-    enum: ['TestSeries', 'StudyMaterial'],
+    enum: ['TestSeries', 'StudyMaterial', 'SingleModelPaper', 'NonPharmaResource'],
     required: true,
   },
   title: {

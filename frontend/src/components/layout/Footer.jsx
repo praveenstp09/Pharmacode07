@@ -9,14 +9,16 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-12 border-b border-slate-800">
           {/* Brand Col */}
           <div className="lg:col-span-2 space-y-4">
-            <Link to="/" className="flex items-center space-x-2.5">
-              <img
-                src="/logo.jpg"
-                alt="PharmaCode07 Exams"
-                className="w-10 h-10 rounded-xl object-contain bg-white p-0.5 shadow-lg"
-              />
-              <span className="font-extrabold text-xl text-white tracking-tight">
-                PharmaCode<span className="text-blue-400">07</span> <span className="text-indigo-400 font-serif text-sm uppercase">Exams</span>
+            <Link to="/" className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-2xl bg-white p-1 shadow-lg border border-slate-700 flex items-center justify-center overflow-hidden">
+                <img
+                  src="/logo.png"
+                  alt="PharmaCode07"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <span className="font-extrabold text-2xl text-white tracking-tight">
+                PharmaCode<span className="text-blue-400">07</span>
               </span>
             </Link>
             <p className="text-sm text-slate-400 max-w-sm leading-relaxed">
@@ -25,14 +27,8 @@ const Footer = () => {
             <div className="pt-2 space-y-2">
               <div className="flex items-center space-x-2 text-sm text-slate-300">
                 <Mail className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                <a href="mailto:royaldcx07031999@gmail.com" className="hover:text-white transition">
+                <a href="mailto:royaldcx07031999@gmail.com" className="hover:text-white transition font-medium">
                   royaldcx07031999@gmail.com
-                </a>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-slate-300">
-                <Phone className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <a href="tel:+919336331163" className="hover:text-white transition">
-                  +91 9336331163
                 </a>
               </div>
             </div>
@@ -132,7 +128,7 @@ const Footer = () => {
 
         {/* Bottom copyright */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <p>© 2026 Pharmacode07Exams. All Rights Reserved.</p>
+          <p>© 2026 PharmaCode07. All Rights Reserved.</p>
           <p className="flex items-center">
             Dedicated to Indian Pharmacy Students & Aspirants
           </p>
