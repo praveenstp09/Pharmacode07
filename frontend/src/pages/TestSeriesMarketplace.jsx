@@ -54,14 +54,17 @@ const TestSeriesMarketplace = () => {
   const categories = ['All', 'Competitive Exam', 'Model Paper', 'Previous Year'];
 
   useEffect(() => {
-    fetchSeries();
-  }, [selectedExam, selectedCategory, sortBy]);
+    const timer = setTimeout(() => {
+      fetchSeries();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, selectedExam, selectedCategory, sortBy]);
 
   const fetchSeries = async () => {
     setLoading(true);
     try {
       let query = `?examType=${selectedExam}&category=${selectedCategory}`;
-      if (search) query += `&search=${encodeURIComponent(search)}`;
+      if (search.trim()) query += `&search=${encodeURIComponent(search.trim())}`;
       if (sortBy) query += `&sort=${sortBy}`;
 
       const res = await api.get(`/test-series${query}`);

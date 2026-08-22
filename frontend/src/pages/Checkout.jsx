@@ -12,6 +12,7 @@ import {
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 
 // Helper to dynamically load Razorpay checkout script if missing
 const loadRazorpayScript = () => {
@@ -40,6 +41,7 @@ const Checkout = () => {
     clearCart,
   } = useCart();
   const { user, isAuthenticated, refreshUser } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [inputCoupon, setInputCoupon] = useState('');
@@ -99,14 +101,17 @@ const Checkout = () => {
       // 2. If 100% discount / Free checkout (Total === 0)
       if (total === 0) {
         const freeRes = await api.post('/payments/free-checkout', {
-          orderId: order.orderId,
+          orderId: order.orderId || order._id || order.id,
         });
 
         if (freeRes.data.success) {
           clearCart();
           await refreshUser();
+          showToast('Package unlocked successfully!', 'success');
           navigate('/dashboard?status=success&msg=Package+unlocked+successfully');
           return;
+        } else {
+          throw new Error(freeRes.data.message || 'Free checkout failed to activate package');
         }
       }
 
@@ -136,13 +141,18 @@ const Checkout = () => {
               if (verifyRes.data.success) {
                 clearCart();
                 await refreshUser();
+                showToast('Payment successful! Package unlocked for 365 days.', 'success');
                 navigate('/dashboard?status=success&msg=Payment+successful!+Package+unlocked+for+365+days.');
               } else {
-                setError('Payment verification failed. Please contact support.');
+                const msg = 'Payment verification failed. Please contact support.';
+                setError(msg);
+                showToast(msg, 'error');
                 setProcessing(false);
               }
             } catch (vErr) {
-              setError('Payment verification failed: ' + (vErr.response?.data?.message || vErr.message));
+              const msg = 'Payment verification failed: ' + (vErr.response?.data?.message || vErr.message);
+              setError(msg);
+              showToast(msg, 'error');
               setProcessing(false);
             }
           },
@@ -163,12 +173,14 @@ const Checkout = () => {
 
         const rzp = new window.Razorpay(options);
         rzp.on('payment.failed', function (resp) {
-          setError(`Payment failed: ${resp.error.description || 'Transaction declined'}`);
+          const msg = `Payment failed: ${resp.error.description || 'Transaction declined'}`;
+          setError(msg);
+          showToast(msg, 'error');
           setProcessing(false);
         });
         rzp.open();
       } else {
-        throw new Error('Payment gateway configuration not available. Please contact admin at pharmacode07exam@gmail.com');
+        throw new Error('Payment gateway configuration not available. Please contact admin at pharmacode07exams@gmail.com');
       }
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Payment processing failed');

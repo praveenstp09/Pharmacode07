@@ -1,4 +1,5 @@
 import Contact from '../models/Contact.js';
+import { sendStudentQueryNotification } from '../utils/emailNotifier.js';
 
 // @desc    Submit a contact message / support inquiry
 // @route   POST /api/contact
@@ -17,6 +18,11 @@ export const submitContact = async (req, res) => {
       mobile: mobile || '',
       subject,
       message,
+    });
+
+    // Send asynchronous email notification to admin (non-blocking)
+    sendStudentQueryNotification(contact).catch(err => {
+      console.error('Email notify background error:', err.message);
     });
 
     res.status(201).json({

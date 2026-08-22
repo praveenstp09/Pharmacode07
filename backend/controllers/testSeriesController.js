@@ -78,11 +78,10 @@ export const getTestSeriesBySlug = async (req, res) => {
       .populate('testPaperId', 'durationMinutes totalMarks totalQuestions positiveMarks negativeMarks difficulty')
       .sort({ sortOrder: 1, createdAt: 1 });
 
-    // Group items into the 4 structured folders
+    // Group items into the 3 structured folders: CBT Mocks, PYQs (CBT + PDF), Subject-Wise (CBT only)
     const folders = {
       cbtMixed: [],
       pyqs: [],
-      mcqPdfs: [],
       subjectWise: {}, // { "Pharmacology": [ ...items ] }
     };
 
@@ -108,8 +107,6 @@ export const getTestSeriesBySlug = async (req, res) => {
         folders.cbtMixed.push(formattedItem);
       } else if (item.folderType === 'pyq') {
         folders.pyqs.push(formattedItem);
-      } else if (item.folderType === 'mcq_pdf') {
-        folders.mcqPdfs.push(formattedItem);
       } else if (item.folderType === 'subject_wise') {
         const sub = item.subjectName || 'General';
         if (!folders.subjectWise[sub]) folders.subjectWise[sub] = [];
@@ -131,7 +128,6 @@ export const getTestSeriesBySlug = async (req, res) => {
         stats: {
           cbtMixedCount: folders.cbtMixed.length,
           pyqsCount: folders.pyqs.length,
-          mcqPdfsCount: folders.mcqPdfs.length,
           subjectCount: Object.keys(folders.subjectWise).length,
           totalFolderItems: folderItems.length,
         },

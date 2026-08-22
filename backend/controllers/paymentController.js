@@ -115,21 +115,21 @@ export const createOrder = async (req, res) => {
         if (!doc) {
           return res.status(404).json({ success: false, message: `Study Material not found: ${id}` });
         }
-        actualPrice = doc.isPaid ? (doc.price || 0) : 0;
+        actualPrice = doc.isPaid ? (doc.discountPrice !== undefined && doc.discountPrice !== null ? doc.discountPrice : doc.price || 0) : 0;
         actualTitle = doc.title;
       } else if (type === 'SingleModelPaper') {
         const doc = await SingleModelPaper.findById(id);
         if (!doc) {
           return res.status(404).json({ success: false, message: `Model Paper not found: ${id}` });
         }
-        actualPrice = doc.isFree ? 0 : (doc.discountPrice !== undefined ? doc.discountPrice : doc.price);
+        actualPrice = doc.isFree ? 0 : (doc.discountPrice !== undefined && doc.discountPrice !== null ? doc.discountPrice : doc.price);
         actualTitle = doc.title;
       } else if (type === 'NonPharmaResource') {
         const doc = await NonPharmaResource.findById(id);
         if (!doc) {
           return res.status(404).json({ success: false, message: `Non-Pharma Resource not found: ${id}` });
         }
-        actualPrice = doc.isPaid ? (doc.price || 0) : 0;
+        actualPrice = doc.isPaid ? (doc.discountPrice !== undefined && doc.discountPrice !== null ? doc.discountPrice : doc.price || 0) : 0;
         actualTitle = doc.title;
       }
 

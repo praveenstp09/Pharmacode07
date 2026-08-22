@@ -31,9 +31,24 @@ const TestAttemptScreen = () => {
   const [questionTimes, setQuestionTimes] = useState([]);
   const [totalTimeSpent, setTotalTimeSpent] = useState(0);
 
-  // Submit Modal
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const questionStartTimeRef = React.useRef(Date.now());
+
+  const recordTimeForCurrentQuestion = () => {
+    const now = Date.now();
+    const elapsed = Math.max(1, Math.round((now - questionStartTimeRef.current) / 1000));
+    questionStartTimeRef.current = now;
+    setQuestionTimes(prev => {
+      const updated = [...prev];
+      if (currentIndex < updated.length) {
+        updated[currentIndex] = (updated[currentIndex] || 0) + elapsed;
+      }
+      return updated;
+    });
+    setTotalTimeSpent(prev => prev + elapsed);
+    return elapsed;
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -54,6 +69,7 @@ const TestAttemptScreen = () => {
           initialVisited[0] = true;
           setVisitedFlags(initialVisited);
           setQuestionTimes(new Array(qCount).fill(0));
+          questionStartTimeRef.current = Date.now();
         }
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load test paper. Make sure you have unlocked it.');
@@ -100,6 +116,7 @@ const TestAttemptScreen = () => {
   };
 
   const handleSelectQuestion = index => {
+    recordTimeForCurrentQuestion();
     setCurrentIndex(index);
     setVisitedFlags(prev => {
       const updated = [...prev];
@@ -121,6 +138,7 @@ const TestAttemptScreen = () => {
   };
 
   const handleSubmit = async () => {
+    recordTimeForCurrentQuestion();
     setSubmitting(true);
     try {
       const submissionAnswers = answers.map((opt, idx) => ({

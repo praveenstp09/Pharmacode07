@@ -9,6 +9,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 
 const Cart = () => {
   const {
@@ -22,6 +23,7 @@ const Cart = () => {
     applyCoupon,
     removeCoupon,
   } = useCart();
+  const { showToast } = useToast();
 
   const [couponCode, setCouponCode] = useState('');
   const [couponMsg, setCouponMsg] = useState('');
@@ -37,9 +39,26 @@ const Cart = () => {
     const res = await applyCoupon(couponCode);
     if (res.success) {
       setCouponMsg(res.message);
+      showToast(res.message, 'success');
     } else {
       setCouponError(res.message);
+      showToast(res.message, 'error');
     }
+  };
+
+  const handleRemoveItem = (id) => {
+    removeFromCart(id);
+    showToast('Item removed from cart', 'info');
+  };
+
+  const handleClearCart = () => {
+    clearCart();
+    showToast('Cart cleared', 'info');
+  };
+
+  const handleRemoveCoupon = () => {
+    removeCoupon();
+    showToast('Coupon removed', 'info');
   };
 
   if (items.length === 0) {
@@ -107,7 +126,7 @@ const Cart = () => {
               </div>
 
               <button
-                onClick={() => removeFromCart(item.id)}
+                onClick={() => handleRemoveItem(item.id)}
                 className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
                 title="Remove item"
               >
@@ -118,7 +137,7 @@ const Cart = () => {
 
           <div className="flex justify-between items-center pt-2">
             <button
-              onClick={clearCart}
+              onClick={handleClearCart}
               className="text-xs font-semibold text-rose-600 hover:underline"
             >
               Clear Cart
@@ -152,7 +171,7 @@ const Cart = () => {
                   </div>
                 </div>
                 <button
-                  onClick={removeCoupon}
+                  onClick={handleRemoveCoupon}
                   className="text-xs font-bold text-rose-600 hover:underline"
                 >
                   Remove

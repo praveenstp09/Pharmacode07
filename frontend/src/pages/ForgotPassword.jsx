@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Mail, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -18,10 +20,14 @@ const ForgotPassword = () => {
     try {
       const res = await api.post('/auth/forgot-password', { email });
       if (res.data.success) {
-        setMessage('Password reset instructions have been generated! Please check your email or contact admin.');
+        const msg = 'Password reset instructions have been generated! Please check your email or contact admin.';
+        setMessage(msg);
+        showToast(msg, 'success');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to request password reset.');
+      const msg = err.response?.data?.message || 'Failed to request password reset.';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }

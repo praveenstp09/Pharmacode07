@@ -72,5 +72,8 @@ const testSeriesSchema = new mongoose.Schema(
   }
 );
 
+testSeriesSchema.index({ published: 1, examType: 1, category: 1 });
+testSeriesSchema.index({ published: 1, createdAt: -1 });
+
 const TestSeries = mongoose.model('TestSeries', testSeriesSchema);
 export default TestSeries;

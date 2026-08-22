@@ -5,8 +5,13 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('pharmacode_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('pharmacode_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      localStorage.removeItem('pharmacode_user');
+      return null;
+    }
   });
   const [token, setToken] = useState(() => localStorage.getItem('pharmacode_token') || null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +27,10 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (err) {
           console.error('Failed to verify token', err);
-          logout();
+          // Only clear session on 401 Unauthorized (expired/invalid token), not network glitches or 500s
+          if (err.response?.status === 401) {
+            logout();
+          }
         }
       }
       setLoading(false);

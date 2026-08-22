@@ -76,6 +76,8 @@ const testAttemptSchema = new mongoose.Schema(
 );
 
 testAttemptSchema.index({ userId: 1, testPaperId: 1 });
+testAttemptSchema.index({ userId: 1, createdAt: -1 });
+testAttemptSchema.index({ testPaperId: 1, score: -1 });
 
 const TestAttempt = mongoose.model('TestAttempt', testAttemptSchema);
 export default TestAttempt;

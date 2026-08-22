@@ -6,10 +6,12 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { PCI_CURRICULUM, QUICK_REVISION_SUBJECTS } from './StudyMaterials';
 
 const AdminDashboard = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, loading: authLoading } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('stats'); // 'stats', 'series', 'materials', 'singleModels', 'nonPharma', 'coupons', 'orders', 'students'
@@ -21,6 +23,8 @@ const AdminDashboard = () => {
   const [coupons, setCoupons] = useState([]);
   const [orders, setOrders] = useState([]);
   const [students, setStudents] = useState([]);
+  const [contactsList, setContactsList] = useState([]);
+  const [contactFilter, setContactFilter] = useState('all'); // 'all', 'pending', 'resolved'
   const [loading, setLoading] = useState(true);
 
   // File Upload State
@@ -122,12 +126,13 @@ const AdminDashboard = () => {
 
 
   useEffect(() => {
+    if (authLoading) return;
     if (!isAdmin) {
       navigate('/login');
       return;
     }
     fetchAdminData();
-  }, [isAdmin, activeTab]);
+  }, [isAdmin, authLoading, activeTab]);
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -176,6 +181,11 @@ const AdminDashboard = () => {
         const stRes = await api.get('/admin/students');
         if (stRes.data.success) setStudents(stRes.data.data);
       }
+
+      if (activeTab === 'contacts' || !contactsList.length) {
+        const cRes = await api.get('/admin/contacts');
+        if (cRes.data.success) setContactsList(cRes.data.data);
+      }
     } catch (err) {
       console.error('Failed to load admin data:', err);
     } finally {
@@ -200,19 +210,19 @@ const AdminDashboard = () => {
       if (res.data.success) {
         const url = res.data.data.url;
         setTargetUrl(url);
-        alert('🎉 File uploaded successfully!');
+        showToast('File uploaded successfully!', 'success');
       }
     } catch (err) {
-      alert('Upload failed: ' + (err.response?.data?.message || err.message));
+      showToast('Upload failed: ' + (err.response?.data?.message || err.message), 'error');
     } finally {
       setUploadingFile(false);
     }
   };
 
   // Smart MCQ Regex Parser
-  const parseBulkMcqText = (text, setQueueState) => {
+  const parseBulkMcqText = (text, setQueueState, defaultSubject = 'General Pharmacy') => {
     if (!text.trim()) {
-      alert('Please paste some MCQ text first!');
+      showToast('Please paste some MCQ text first!', 'warning');
       return;
     }
     const blocks = text.split(/(?=Q\d+[\.\:\s])/i).filter(b => b.trim().length > 0);
@@ -241,18 +251,18 @@ const AdminDashboard = () => {
           ],
           correctOptionIndex: correctIdx,
           explanation: expMatch ? expMatch[1].replace(/\n+/g, ' ').trim() : 'Official answer key reference.',
-          subject: 'Pharmacology',
+          subject: defaultSubject || 'General Pharmacy',
         });
       }
     });
 
     if (parsedList.length === 0) {
-      alert('Could not detect MCQ format. Please make sure text has Q1., A., B., C., D. and Correct Answer.');
+      showToast('Could not detect MCQ format. Please make sure text has Q1., A., B., C., D. and Correct Answer.', 'warning');
       return;
     }
 
     setQueueState(prev => [...prev, ...parsedList]);
-    alert(`🎉 Successfully parsed ${parsedList.length} questions into queue!`);
+    showToast(`Successfully parsed ${parsedList.length} questions into queue!`, 'success');
   };
 
   const handleCreateSeries = async e => {
@@ -263,18 +273,18 @@ const AdminDashboard = () => {
         '-' + Date.now();
       const res = await api.post('/admin/test-series', { ...newSeries, slug });
       if (res.data.success) {
-        alert('🎉 Test Series Package created successfully!');
+        showToast('Test Series Package created successfully!', 'success');
         fetchAdminData();
       }
     } catch (err) {
-      alert('Failed to create series: ' + err.message);
+      showToast('Failed to create series: ' + (err.response?.data?.message || err.message), 'error');
     }
   };
 
   const handleAddFolderItem = async e => {
     e.preventDefault();
     if (!selectedSeriesId) {
-      alert('Please select a Test Series first!');
+      showToast('Please select a Test Series first!', 'warning');
       return;
     }
     try {
@@ -283,13 +293,13 @@ const AdminDashboard = () => {
         questions: folderForm.contentType === 'cbt' ? folderQuestionsQueue : [],
       });
       if (res.data.success) {
-        alert('🎉 Item added to folder successfully!');
+        showToast('Item added to folder successfully!', 'success');
         setFolderQuestionsQueue([]);
         setFolderForm({ ...folderForm, title: '', pdfUrl: '' });
         fetchAdminData();
       }
     } catch (err) {
-      alert('Failed: ' + (err.response?.data?.message || err.message));
+      showToast('Failed: ' + (err.response?.data?.message || err.message), 'error');
     }
   };
 
@@ -308,12 +318,12 @@ const AdminDashboard = () => {
           : newMaterial.subject;
 
       if (!finalSemesterOrYear) {
-        alert('Please specify the semester, year, or exam name');
+        showToast('Please specify the semester, year, or exam name', 'warning');
         return;
       }
 
       if (!finalSubject) {
-        alert('Please specify the subject');
+        showToast('Please specify the subject', 'warning');
         return;
       }
 
@@ -330,7 +340,7 @@ const AdminDashboard = () => {
       });
 
       if (res.data.success) {
-        alert('🎉 Study Material uploaded successfully!');
+        showToast('Study Material uploaded successfully!', 'success');
         setNewMaterial({
           ...newMaterial,
           title: '',
@@ -342,7 +352,7 @@ const AdminDashboard = () => {
         fetchAdminData();
       }
     } catch (err) {
-      alert('Failed: ' + (err.response?.data?.message || err.message));
+      showToast('Failed: ' + (err.response?.data?.message || err.message), 'error');
     }
   };
 
@@ -351,11 +361,11 @@ const AdminDashboard = () => {
     try {
       const res = await api.delete(`/admin/materials/${id}`);
       if (res.data.success) {
-        alert('Deleted successfully!');
+        showToast('Study Material deleted successfully!', 'success');
         fetchAdminData();
       }
     } catch (err) {
-      alert('Failed to delete: ' + err.message);
+      showToast('Failed to delete: ' + (err.response?.data?.message || err.message), 'error');
     }
   };
 
@@ -367,12 +377,12 @@ const AdminDashboard = () => {
         questions: newSingleModel.hasCBT ? singleModelQuestions : [],
       });
       if (res.data.success) {
-        alert('🎉 Single Model Paper created!');
+        showToast('Single Model Paper created successfully!', 'success');
         setSingleModelQuestions([]);
         fetchAdminData();
       }
     } catch (err) {
-      alert('Failed: ' + err.message);
+      showToast('Failed: ' + (err.response?.data?.message || err.message), 'error');
     }
   };
 
@@ -384,12 +394,12 @@ const AdminDashboard = () => {
         questions: newNonPharma.contentType === 'cbt' ? nonPharmaQuestions : [],
       });
       if (res.data.success) {
-        alert('🎉 Non-Pharma Resource created!');
+        showToast('Non-Pharma Resource created successfully!', 'success');
         setNonPharmaQuestions([]);
         fetchAdminData();
       }
     } catch (err) {
-      alert('Failed: ' + err.message);
+      showToast('Failed: ' + (err.response?.data?.message || err.message), 'error');
     }
   };
 
@@ -404,12 +414,12 @@ const AdminDashboard = () => {
         expiryDate,
       });
       if (res.data.success) {
-        alert('🎉 Promo Code created successfully!');
+        showToast('Promo Code created successfully!', 'success');
         setNewCoupon({ code: '', discountPercent: 10, maxDiscount: 100, minOrderValue: 99, expiryDays: 30 });
         fetchAdminData();
       }
     } catch (err) {
-      alert('Failed: ' + (err.response?.data?.message || err.message));
+      showToast('Failed to create coupon: ' + (err.response?.data?.message || err.message), 'error');
     }
   };
 
@@ -418,17 +428,74 @@ const AdminDashboard = () => {
     try {
       const res = await api.delete(`/admin/coupons/${id}`);
       if (res.data.success) {
-        alert('Coupon deleted');
+        showToast('Coupon deleted successfully', 'success');
         fetchAdminData();
       }
     } catch (err) {
-      alert('Failed: ' + err.message);
+      showToast('Failed to delete coupon: ' + (err.response?.data?.message || err.message), 'error');
+    }
+  };
+
+  const handleToggleResolve = async (contactId) => {
+    try {
+      const res = await api.put(`/admin/contacts/${contactId}/resolve`);
+      if (res.data.success) {
+        showToast(res.data.message, 'success');
+        setContactsList(prev =>
+          prev.map(c => (c._id === contactId ? res.data.data : c))
+        );
+        return;
+      }
+    } catch (err) {
+      try {
+        const fallbackRes = await api.put(`/contact/${contactId}/resolve`);
+        if (fallbackRes.data.success) {
+          showToast(fallbackRes.data.message, 'success');
+          setContactsList(prev =>
+            prev.map(c => (c._id === contactId ? fallbackRes.data.data : c))
+          );
+          return;
+        }
+      } catch (fErr) {
+        showToast('Failed to update inquiry status: ' + (err.response?.data?.message || err.message), 'error');
+      }
+    }
+  };
+
+  const handleDeleteContact = async (contactId) => {
+    if (!window.confirm('Are you sure you want to delete this student inquiry?')) return;
+    try {
+      const res = await api.delete(`/admin/contacts/${contactId}`);
+      if (res.data.success) {
+        showToast('Inquiry deleted successfully', 'info');
+        setContactsList(prev => prev.filter(c => c._id !== contactId));
+        return;
+      }
+    } catch (err) {
+      try {
+        const fDel = await api.delete(`/contact/${contactId}`);
+        if (fDel.data.success) {
+          showToast('Inquiry deleted successfully', 'info');
+          setContactsList(prev => prev.filter(c => c._id !== contactId));
+          return;
+        }
+      } catch (fErr) {
+        showToast('Failed to delete inquiry: ' + (err.response?.data?.message || err.message), 'error');
+      }
     }
   };
 
   // Compute standard subjects for current Course & Semester/Year selection
   const standardSubjects =
     PCI_CURRICULUM[newMaterial.courseType]?.[newMaterial.semesterOrYear] || [];
+
+  if (authLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
@@ -460,6 +527,7 @@ const AdminDashboard = () => {
           { id: 'coupons', label: '🏷️ Coupons & Promos' },
           { id: 'orders', label: '💳 Orders' },
           { id: 'students', label: '👥 Students' },
+          { id: 'contacts', label: `💬 Student Inquiries (${contactsList.length})` },
         ].map(tab => (
           <button
             key={tab.id}
@@ -953,26 +1021,24 @@ const AdminDashboard = () => {
                   <label className="font-bold text-slate-700">Target Folder</label>
                   <select
                     value={folderForm.folderType}
-                    onChange={e => setFolderForm({ ...folderForm, folderType: e.target.value })}
+                    onChange={e => setFolderForm({ ...folderForm, folderType: e.target.value, contentType: 'cbt' })}
                     className="w-full mt-1 p-2.5 border rounded-xl font-bold"
                   >
-                    <option value="cbt_mixed">📁 Folder 1: CBT Mixed Tests</option>
-                    <option value="pyq">📁 Folder 2: Past PYQs (CBT / PDF)</option>
-                    <option value="mcq_pdf">📁 Folder 3: Mixed MCQ PDFs</option>
-                    <option value="subject_wise">📁 Folder 4: Subject-Wise</option>
+                    <option value="cbt_mixed">📁 Folder 1: Full CBT Mock Tests (CBT Exam)</option>
+                    <option value="pyq">📁 Folder 2: Past PYQs (CBT Exam + Solved PDF)</option>
+                    <option value="subject_wise">📁 Folder 3: Subject-Wise Tests (CBT Exam Only)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700">Content Type</label>
-                  <select
-                    value={folderForm.contentType}
-                    onChange={e => setFolderForm({ ...folderForm, contentType: e.target.value })}
-                    className="w-full mt-1 p-2.5 border rounded-xl font-bold"
-                  >
-                    <option value="cbt">Interactive CBT Test</option>
-                    <option value="pdf">Downloadable PDF</option>
-                    <option value="notes_pdf">Revision Notes PDF</option>
-                  </select>
+                  <label className="font-bold text-slate-700">Exam Mode</label>
+                  <div className="w-full mt-1 p-2.5 bg-slate-50 border rounded-xl font-bold text-xs text-slate-700 flex items-center space-x-1.5">
+                    <span>⚡</span>
+                    <span>
+                      {folderForm.folderType === 'pyq'
+                        ? 'Dual Mode (Interactive CBT + Solved PDF)'
+                        : 'Interactive Online CBT Simulator'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -981,10 +1047,11 @@ const AdminDashboard = () => {
                   <label className="font-bold text-slate-700">Subject Name</label>
                   <input
                     type="text"
+                    required
                     value={folderForm.subjectName}
                     onChange={e => setFolderForm({ ...folderForm, subjectName: e.target.value })}
-                    placeholder="e.g. Pharmacology, Pharmaceutics"
-                    className="w-full mt-1 p-2.5 border rounded-xl"
+                    placeholder="e.g. Pharmacology, Pharmaceutics, Pharmaceutical Chemistry"
+                    className="w-full mt-1 p-2.5 border rounded-xl font-semibold"
                   />
                 </div>
               )}
@@ -1007,16 +1074,22 @@ const AdminDashboard = () => {
                   id="demo-check"
                   checked={folderForm.isFreeDemo}
                   onChange={e => setFolderForm({ ...folderForm, isFreeDemo: e.target.checked })}
-                  className="w-4 h-4 text-emerald-600 rounded"
+                  className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
                 />
                 <label htmlFor="demo-check" className="text-xs font-bold text-emerald-900 cursor-pointer">
                   🟢 Set as Free Demo (Unlocked for all students to preview)
                 </label>
               </div>
 
-              {folderForm.contentType !== 'cbt' && (
-                <div className="p-4 bg-slate-50 border rounded-2xl space-y-2">
-                  <label className="font-bold text-slate-700 block">PDF Document</label>
+              {/* PDF Document Section (Enabled for PYQ Folder) */}
+              {folderForm.folderType === 'pyq' && (
+                <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-indigo-950 text-xs flex items-center space-x-1.5">
+                      <span>📄 Solved Official Question Paper PDF</span>
+                      <span className="text-[10px] text-indigo-600 font-normal">(Optional if uploading CBT questions)</span>
+                    </label>
+                  </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="file"
@@ -1031,49 +1104,48 @@ const AdminDashboard = () => {
                     value={folderForm.pdfUrl}
                     onChange={e => setFolderForm({ ...folderForm, pdfUrl: e.target.value })}
                     placeholder="Or paste direct PDF URL..."
-                    className="w-full p-2 border rounded-xl text-xs font-mono"
+                    className="w-full p-2 border rounded-xl text-xs font-mono bg-white"
                   />
                 </div>
               )}
 
-              {folderForm.contentType === 'cbt' && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-blue-900">⚡ Bulk MCQ Text Parser</span>
-                    <span className="text-xs font-bold text-emerald-700">Queue: {folderQuestionsQueue.length} MCQs</span>
-                  </div>
-                  <textarea
-                    rows={4}
-                    id="folder-mcq-text"
-                    placeholder="Paste Q1. A. B. C. D. Correct Answer: ... text copied from PDF..."
-                    className="w-full p-2.5 bg-white border rounded-xl text-xs font-mono"
-                  />
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const txt = document.getElementById('folder-mcq-text').value;
-                        parseBulkMcqText(txt, setFolderQuestionsQueue);
-                        document.getElementById('folder-mcq-text').value = '';
-                      }}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow"
-                    >
-                      ⚡ Parse Questions
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFolderQuestionsQueue([])}
-                      className="px-3 py-2 bg-rose-50 text-rose-600 font-bold text-xs rounded-xl"
-                    >
-                      Clear Queue
-                    </button>
-                  </div>
+              {/* CBT MCQ Questions Parser (For CBT Mock, PYQ CBT mode, and Subject-Wise) */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-blue-900">⚡ Bulk MCQ Text Parser (CBT Simulator Mode)</span>
+                  <span className="text-xs font-bold text-emerald-700">Queue: {folderQuestionsQueue.length} MCQs</span>
                 </div>
-              )}
+                <textarea
+                  rows={4}
+                  id="folder-mcq-text"
+                  placeholder="Paste Q1. A. B. C. D. Correct Answer: ... text copied from PDF..."
+                  className="w-full p-2.5 bg-white border rounded-xl text-xs font-mono"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const txt = document.getElementById('folder-mcq-text').value;
+                      parseBulkMcqText(txt, setFolderQuestionsQueue, folderForm.subjectName || 'General Pharmacy');
+                      document.getElementById('folder-mcq-text').value = '';
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow cursor-pointer"
+                  >
+                    ⚡ Parse Questions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFolderQuestionsQueue([])}
+                    className="px-3 py-2 bg-rose-50 text-rose-600 font-bold text-xs rounded-xl cursor-pointer"
+                  >
+                    Clear Queue
+                  </button>
+                </div>
+              </div>
 
               <button
                 type="submit"
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow"
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow cursor-pointer transition"
               >
                 Save Item to Package Folder
               </button>
@@ -1425,7 +1497,7 @@ const AdminDashboard = () => {
                 type="button"
                 onClick={() => {
                   const txt = document.getElementById('single-mcq-text').value;
-                  parseBulkMcqText(txt, setSingleModelQuestions);
+                  parseBulkMcqText(txt, setSingleModelQuestions, newSingleModel.examType || 'General Pharmacy');
                   document.getElementById('single-mcq-text').value = '';
                 }}
                 className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl shadow"
@@ -1531,7 +1603,7 @@ const AdminDashboard = () => {
                   type="button"
                   onClick={() => {
                     const txt = document.getElementById('nonpharma-mcq-text').value;
-                    parseBulkMcqText(txt, setNonPharmaQuestions);
+                    parseBulkMcqText(txt, setNonPharmaQuestions, newNonPharma.section || 'General Studies');
                     document.getElementById('nonpharma-mcq-text').value = '';
                   }}
                   className="px-4 py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl shadow"
@@ -1701,6 +1773,171 @@ const AdminDashboard = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* TAB 9: STUDENT INQUIRIES & DOUBTS */}
+      {activeTab === 'contacts' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+              <h3 className="font-extrabold text-slate-900 text-lg">
+                Student Inquiries & Doubts ({contactsList.length})
+              </h3>
+              <p className="text-xs text-slate-500">
+                Messages and doubt submissions sent from the "Contact Admin" section on the Home page and /contact page.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={fetchAdminData}
+                className="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs rounded-xl transition self-start sm:self-auto cursor-pointer"
+              >
+                🔄 Refresh Inquiries
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Pills */}
+          <div className="flex items-center gap-2 text-xs font-bold">
+            <button
+              onClick={() => setContactFilter('all')}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
+                contactFilter === 'all'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              All ({contactsList.length})
+            </button>
+            <button
+              onClick={() => setContactFilter('pending')}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
+                contactFilter === 'pending'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+              }`}
+            >
+              🟡 Pending ({contactsList.filter(c => !c.isResolved).length})
+            </button>
+            <button
+              onClick={() => setContactFilter('resolved')}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
+                contactFilter === 'resolved'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+              }`}
+            >
+              🟢 Resolved ({contactsList.filter(c => c.isResolved).length})
+            </button>
+          </div>
+
+          {contactsList.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 space-y-2">
+              <span className="text-3xl">📭</span>
+              <p className="text-sm font-semibold">No student inquiries received yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {contactsList
+                .filter(c => {
+                  if (contactFilter === 'pending') return !c.isResolved;
+                  if (contactFilter === 'resolved') return c.isResolved;
+                  return true;
+                })
+                .map(c => (
+                  <div
+                    key={c._id}
+                    className={`p-5 rounded-2xl border transition space-y-3 ${
+                      c.isResolved
+                        ? 'bg-slate-50/70 border-slate-200 opacity-90'
+                        : 'bg-white border-amber-200/80 shadow-sm hover:border-indigo-300'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-slate-900 text-sm">{c.name}</span>
+                          {c.isResolved ? (
+                            <span className="text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                              ✓ Resolved
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-extrabold uppercase bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                              Pending Action
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md inline-block mt-1">
+                          {c.subject || 'General Inquiry'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                        {new Date(c.createdAt).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-white border border-slate-100 rounded-xl text-xs text-slate-700 leading-relaxed shadow-inner">
+                      <p className="whitespace-pre-wrap font-medium">{c.message}</p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/60 text-xs">
+                      <div className="flex items-center gap-3 text-slate-600">
+                        <a
+                          href={`mailto:${c.email}?subject=Re: ${encodeURIComponent(c.subject || 'Inquiry')}`}
+                          className="font-bold text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          ✉️ {c.email}
+                        </a>
+                        {c.mobile && (
+                          <a
+                            href={`tel:${c.mobile}`}
+                            className="font-medium text-slate-500 hover:text-slate-900"
+                          >
+                            📞 {c.mobile}
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleToggleResolve(c._id)}
+                          className={`px-2.5 py-1 font-bold text-xs rounded-lg transition cursor-pointer ${
+                            c.isResolved
+                              ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                              : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                          }`}
+                          title={c.isResolved ? 'Mark as Unresolved / Pending' : 'Mark as Resolved'}
+                        >
+                          {c.isResolved ? '↺ Reopen' : '✓ Mark Resolved'}
+                        </button>
+
+                        <a
+                          href={`mailto:${c.email}?subject=Re: ${encodeURIComponent(c.subject || 'Inquiry - PharmaCode07')}&body=Dear ${encodeURIComponent(c.name)},\n\nThank you for reaching out to PharmaCode07 regarding "${encodeURIComponent(c.subject || 'your inquiry')}".\n\n`}
+                          className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm transition"
+                        >
+                          Reply ↗
+                        </a>
+
+                        <button
+                          onClick={() => handleDeleteContact(c._id)}
+                          className="p-1 text-slate-400 hover:text-rose-600 rounded transition cursor-pointer"
+                          title="Delete Inquiry"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
       )}
     </div>

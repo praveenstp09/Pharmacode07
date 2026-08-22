@@ -28,11 +28,21 @@ const contactSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isResolved: {
+      type: Boolean,
+      default: false,
+    },
+    resolvedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+contactSchema.index({ isResolved: 1, createdAt: -1 });
 
 const Contact = mongoose.model('Contact', contactSchema);
 export default Contact;

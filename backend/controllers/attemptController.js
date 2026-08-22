@@ -1,5 +1,9 @@
 import TestAttempt from '../models/TestAttempt.js';
 import TestPaper from '../models/TestPaper.js';
+import User from '../models/User.js';
+import FolderItem from '../models/FolderItem.js';
+import Purchase from '../models/Purchase.js';
+import SingleModelPaper from '../models/SingleModelPaper.js';
 
 // @desc    Submit a test attempt and calculate score
 // @route   POST /api/attempts/submit
@@ -15,6 +19,65 @@ export const submitAttempt = async (req, res) => {
     const paper = await TestPaper.findById(paperId);
     if (!paper) {
       return res.status(404).json({ success: false, message: 'Test paper not found' });
+    }
+
+    // Access & Paywall Authorization Guard
+    const user = await User.findById(req.user.id);
+    let hasAccess = user && user.role === 'admin';
+
+    if (!hasAccess) {
+      // 1. Check FolderItem free demo status
+      const folderItem = await FolderItem.findOne({ testPaperId: paper._id });
+      if (folderItem && folderItem.isFreeDemo) {
+        hasAccess = true;
+      }
+      
+      // 2. Check Single Model Paper free / purchased status
+      if (!hasAccess && (paper.parentType === 'SingleModelPaper' || !paper.testSeriesId)) {
+        const modelPaper = await SingleModelPaper.findOne({
+          $or: [{ _id: paper.parentId }, { testPaperId: paper._id }],
+        });
+        if (modelPaper) {
+          if (modelPaper.isFree) {
+            hasAccess = true;
+          } else {
+            const isSinglePurchased = user.purchasedSingleModels?.some(
+              id => id.toString() === modelPaper._id.toString()
+            );
+            const singlePurchase = await Purchase.findOne({
+              userId: user._id,
+              itemType: 'SingleModelPaper',
+              itemId: modelPaper._id,
+              isActive: true,
+              expiresAt: { $gt: new Date() },
+            });
+            if (isSinglePurchased || singlePurchase) hasAccess = true;
+          }
+        }
+      }
+
+      // 3. Check TestSeries purchased status
+      const targetSeriesId = paper.testSeriesId || (paper.parentType === 'TestSeries' ? paper.parentId : null);
+      if (!hasAccess && targetSeriesId) {
+        const isSeriesPurchased = user.purchasedTests?.some(
+          id => id.toString() === targetSeriesId.toString()
+        );
+        const seriesPurchase = await Purchase.findOne({
+          userId: user._id,
+          itemType: 'TestSeries',
+          itemId: targetSeriesId,
+          isActive: true,
+          expiresAt: { $gt: new Date() },
+        });
+        if (isSeriesPurchased || seriesPurchase) hasAccess = true;
+      }
+    }
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: 'You must enroll in this test package to submit test attempts and view solutions.',
+      });
     }
 
     const positiveMark = paper.positiveMarks || 1;

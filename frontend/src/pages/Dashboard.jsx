@@ -16,10 +16,13 @@ import {
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import CardSkeleton, { TableSkeleton } from '../components/common/SkeletonCard';
+import confetti from 'canvas-confetti';
 
 const Dashboard = () => {
   const [searchParams] = useSearchParams();
-  const purchaseSuccess = searchParams.get('status') === 'success';
+  const [showSuccessAlert, setShowSuccessAlert] = useState(
+    searchParams.get('status') === 'success'
+  );
 
   const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('tests'); // 'tests', 'models', 'attempts', 'materials', 'nonpharma'
@@ -29,6 +32,21 @@ const Dashboard = () => {
   const [materials, setMaterials] = useState([]);
   const [nonPharma, setNonPharma] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (showSuccessAlert) {
+      try {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#2563EB', '#10B981', '#6366F1', '#F59E0B'],
+        });
+      } catch (e) {
+        console.error('Confetti trigger', e);
+      }
+    }
+  }, [showSuccessAlert]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -116,7 +134,7 @@ const Dashboard = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Payment Success Alert */}
-      {purchaseSuccess && (
+      {showSuccessAlert && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-5 rounded-2xl flex items-center justify-between shadow-sm animate-in fade-in">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
@@ -130,8 +148,11 @@ const Dashboard = () => {
             </div>
           </div>
           <button
-            onClick={() => window.history.replaceState({}, '', '/dashboard')}
-            className="text-xs text-emerald-600 font-bold hover:underline"
+            onClick={() => {
+              setShowSuccessAlert(false);
+              window.history.replaceState({}, '', '/dashboard');
+            }}
+            className="text-xs text-emerald-700 hover:text-emerald-900 font-bold px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 rounded-xl cursor-pointer transition"
           >
             Dismiss
           </button>

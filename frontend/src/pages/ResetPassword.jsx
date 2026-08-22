@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Lock, CheckCircle2, AlertCircle, Eye, EyeOff, KeyRound } from 'lucide-react';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 const ResetPassword = () => {
   const { token } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,12 +21,16 @@ const ResetPassword = () => {
     setError('');
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      const msg = 'Password must be at least 6 characters long';
+      setError(msg);
+      showToast(msg, 'warning');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      const msg = 'Passwords do not match';
+      setError(msg);
+      showToast(msg, 'warning');
       return;
     }
 
@@ -33,12 +39,15 @@ const ResetPassword = () => {
       const res = await api.post(`/auth/reset-password/${token}`, { password });
       if (res.data.success) {
         setSuccess(true);
+        showToast('Password reset successfully! Redirecting to login...', 'success');
         setTimeout(() => {
           navigate('/login');
-        }, 2500);
+        }, 2000);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to reset password. The link may have expired.');
+      const msg = err.response?.data?.message || 'Failed to reset password. The link may have expired.';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }

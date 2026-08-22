@@ -43,6 +43,8 @@ const purchaseSchema = new mongoose.Schema(
 );
 
 purchaseSchema.index({ userId: 1, itemId: 1, expiresAt: -1 });
+purchaseSchema.index({ userId: 1, itemType: 1, itemId: 1, isActive: 1 });
+purchaseSchema.index({ userId: 1, isActive: 1, expiresAt: 1 });
 
 const Purchase = mongoose.model('Purchase', purchaseSchema);
 export default Purchase;

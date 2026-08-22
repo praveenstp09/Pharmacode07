@@ -93,6 +93,8 @@ const testPaperSchema = new mongoose.Schema(
 );
 
 testPaperSchema.index({ testSeriesId: 1, paperNumber: 1 });
+testPaperSchema.index({ parentId: 1, parentType: 1, published: 1 });
+testPaperSchema.index({ published: 1, createdAt: -1 });
 
 const TestPaper = mongoose.model('TestPaper', testPaperSchema);
 export default TestPaper;

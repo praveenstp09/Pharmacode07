@@ -36,7 +36,7 @@ export const autoSeedIfEmpty = async () => {
             });
           }
 
-          // Add sample PYQ, MCQ PDF, and Subject-wise items
+          // Add sample PYQ (CBT + PDF) and Subject-Wise CBT items
           await FolderItem.create({
             testSeriesId: s._id,
             folderType: 'pyq',
@@ -50,23 +50,13 @@ export const autoSeedIfEmpty = async () => {
 
           await FolderItem.create({
             testSeriesId: s._id,
-            folderType: 'mcq_pdf',
-            contentType: 'pdf',
-            title: `${s.examType} High-Yield 500 MCQs Practice PDF`,
-            pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-            totalQuestions: 500,
-            isFreeDemo: true, // Free demo
-            sortOrder: 1,
-          });
-
-          await FolderItem.create({
-            testSeriesId: s._id,
             folderType: 'subject_wise',
             subjectName: 'Pharmacology',
-            contentType: 'notes_pdf',
-            title: 'Pharmacology Drug Classification High-Yield Revision Notes',
-            pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+            contentType: 'cbt',
+            title: 'Pharmacology High-Yield 100 MCQs Practice CBT Exam',
             isFreeDemo: true, // Free demo
+            totalQuestions: 100,
+            durationMinutes: 90,
             sortOrder: 1,
           });
         }

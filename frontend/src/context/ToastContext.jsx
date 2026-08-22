@@ -24,8 +24,8 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {/* Toast Notification Container */}
-      <div className="fixed top-5 right-5 z-50 flex flex-col space-y-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0">
+      {/* Toast Notification Container (Bottom Right) */}
+      <div className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-50 flex flex-col-reverse space-y-reverse space-y-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0">
         {toasts.map((t) => {
           let bgClass = 'bg-slate-900 text-white border-slate-700';
           let Icon = Info;
@@ -48,7 +48,7 @@ export const ToastProvider = ({ children }) => {
           return (
             <div
               key={t.id}
-              className={`pointer-events-auto p-4 rounded-2xl border shadow-xl backdrop-blur-md flex items-start space-x-3 transition-all duration-300 transform animate-in slide-in-from-top-4 fade-in ${bgClass}`}
+              className={`pointer-events-auto p-4 rounded-2xl border shadow-xl backdrop-blur-md flex items-start space-x-3 transition-all duration-300 transform animate-in slide-in-from-bottom-4 fade-in ${bgClass}`}
             >
               <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${iconColor}`} />
               <div className="flex-grow text-xs sm:text-sm font-semibold leading-snug">
@@ -56,7 +56,7 @@ export const ToastProvider = ({ children }) => {
               </div>
               <button
                 onClick={() => removeToast(t.id)}
-                className="text-white/60 hover:text-white transition p-0.5 flex-shrink-0"
+                className="text-white/60 hover:text-white transition p-0.5 flex-shrink-0 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

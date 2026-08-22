@@ -153,7 +153,7 @@ const SingleModelPapers = () => {
                       </span>
                     ) : (
                       <span className="text-xs font-extrabold text-slate-900">
-                        ₹{paper.discountPrice || paper.price}
+                        ₹{paper.discountPrice !== null && paper.discountPrice !== undefined ? paper.discountPrice : paper.price}
                       </span>
                     )}
                   </div>
@@ -174,13 +174,19 @@ const SingleModelPapers = () => {
 
                 <div className="pt-3 border-t border-slate-100">
                   {isPurchased ? (
-                    <Link
-                      to={paper.testPaperId ? `/attempt/${paper.testPaperId._id || paper.testPaperId}` : '#'}
-                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center space-x-2 transition cursor-pointer"
-                    >
-                      <Play className="w-4 h-4 fill-white" />
-                      <span>{paper.isFree ? 'Start Free CBT Mock Exam' : 'Take Online CBT Exam'}</span>
-                    </Link>
+                    paper.testPaperId ? (
+                      <Link
+                        to={`/attempt/${paper.testPaperId._id || paper.testPaperId}`}
+                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center space-x-2 transition cursor-pointer"
+                      >
+                        <Play className="w-4 h-4 fill-white" />
+                        <span>{paper.isFree ? 'Start Free CBT Mock Exam' : 'Take Online CBT Exam'}</span>
+                      </Link>
+                    ) : (
+                      <div className="w-full py-2.5 bg-slate-100 text-slate-500 font-bold text-xs rounded-xl text-center">
+                        CBT Questions Coming Soon
+                      </div>
+                    )
                   ) : (
                     <div className="flex items-center space-x-2">
                       <button

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import User from '../models/User.js';
 import Purchase from '../models/Purchase.js';
+import { sendPasswordResetEmail } from '../utils/emailNotifier.js';
 
 const syncUserPurchases = async (user) => {
   const activePurchases = await Purchase.find({
@@ -187,9 +188,19 @@ export const forgotPassword = async (req, res) => {
     // Generate reset token
     const resetToken = crypto.randomBytes(20).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 mins
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
 
     await user.save({ validateBeforeSave: false });
+
+    // Send reset email via emailNotifier (non-blocking)
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const resetUrl = `${clientUrl}/reset-password/${resetToken}`;
+
+    sendPasswordResetEmail({
+      toEmail: user.email,
+      name: user.name,
+      resetUrl,
+    }).catch(err => console.error('Reset email error:', err.message));
 
     res.json({
       success: true,

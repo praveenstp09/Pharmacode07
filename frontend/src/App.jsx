@@ -1,4 +1,4 @@
-import React,{useEffect} from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -9,16 +9,14 @@ import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import MobileBottomNav from './components/layout/MobileBottomNav';
 import BackToTop from './components/common/BackToTop';
+import ProtectedRoute from './components/common/ProtectedRoute';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
+// Core lightweight routes (Eager loaded for instant first paint)
 import Home from './pages/Home';
 import TestSeriesMarketplace from './pages/TestSeriesMarketplace';
 import TestSeriesDetail from './pages/TestSeriesDetail';
-import TestAttemptScreen from './pages/TestAttemptScreen';
-import TestResult from './pages/TestResult';
 import PracticeQuiz from './pages/PracticeQuiz';
-import StudyMaterials from './pages/StudyMaterials';
-import SingleModelPapers from './pages/SingleModelPapers';
-import NonPharmaHub from './pages/NonPharmaHub';
 import PYQs from './pages/PYQs';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
@@ -27,10 +25,25 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
-import AdminDashboard from './pages/AdminDashboard';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import { PrivacyPolicy, Terms, RefundPolicy } from './pages/LegalPages';
+
+// Heavy secondary routes (Lazy loaded for fast performance & small bundle)
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const TestAttemptScreen = lazy(() => import('./pages/TestAttemptScreen'));
+const TestResult = lazy(() => import('./pages/TestResult'));
+const StudyMaterials = lazy(() => import('./pages/StudyMaterials'));
+const SingleModelPapers = lazy(() => import('./pages/SingleModelPapers'));
+const NonPharmaHub = lazy(() => import('./pages/NonPharmaHub'));
+
+// Smooth Suspense Page Loader
+const PageLoader = () => (
+  <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-3 py-12">
+    <div className="w-10 h-10 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+    <span className="text-xs font-bold text-slate-400 tracking-wide uppercase">Loading PharmaCode07...</span>
+  </div>
+);
 
 // Auto-scroll to top on page navigation
 const ScrollToTop = () => {
@@ -62,51 +75,90 @@ const Layout = ({ children }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <ToastProvider>
-          <Router>
-            <ScrollToTop />
-            <Layout>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/test-series" element={<TestSeriesMarketplace />} />
-              <Route path="/test-series/:slug" element={<TestSeriesDetail />} />
-              <Route path="/attempt/:paperId" element={<TestAttemptScreen />} />
-              <Route path="/result/:attemptId" element={<TestResult />} />
-              <Route path="/practice" element={<PracticeQuiz />} />
-              <Route path="/materials" element={<StudyMaterials />} />
-              <Route path="/model-papers" element={<SingleModelPapers />} />
-              <Route path="/non-pharma" element={<NonPharmaHub />} />
-              <Route path="/pyqs" element={<PYQs />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password/:token" element={<ResetPassword />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/refund-policy" element={<RefundPolicy />} />
-              <Route
-                path="*"
-                element={
-                  <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-4">
-                    <h1 className="text-4xl font-extrabold text-slate-800">404</h1>
-                    <p className="text-slate-500 text-sm mt-2">Page Not Found</p>
-                  </div>
-                }
-              />
-            </Routes>
-          </Layout>
-        </Router>
-        </ToastProvider>
-      </CartProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <CartProvider>
+          <ToastProvider>
+            <Router>
+              <ScrollToTop />
+              <Layout>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/test-series" element={<TestSeriesMarketplace />} />
+                    <Route path="/test-series/:slug" element={<TestSeriesDetail />} />
+                    <Route
+                      path="/attempt/:paperId"
+                      element={
+                        <ProtectedRoute>
+                          <TestAttemptScreen />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/result/:attemptId"
+                      element={
+                        <ProtectedRoute>
+                          <TestResult />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="/practice" element={<PracticeQuiz />} />
+                    <Route path="/materials" element={<StudyMaterials />} />
+                    <Route path="/model-papers" element={<SingleModelPapers />} />
+                    <Route path="/non-pharma" element={<NonPharmaHub />} />
+                    <Route path="/pyqs" element={<PYQs />} />
+                    <Route path="/cart" element={<Cart />} />
+                    <Route
+                      path="/checkout"
+                      element={
+                        <ProtectedRoute>
+                          <Checkout />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password/:token" element={<ResetPassword />} />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <Dashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin"
+                      element={
+                        <ProtectedRoute adminOnly={true}>
+                          <AdminDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/refund-policy" element={<RefundPolicy />} />
+                    <Route
+                      path="*"
+                      element={
+                        <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-4">
+                          <h1 className="text-4xl font-extrabold text-slate-800">404</h1>
+                          <p className="text-slate-500 text-sm mt-2">Page Not Found</p>
+                        </div>
+                      }
+                    />
+                  </Routes>
+                </Suspense>
+              </Layout>
+            </Router>
+          </ToastProvider>
+        </CartProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

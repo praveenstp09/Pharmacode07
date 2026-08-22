@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ const Contact = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -24,9 +26,12 @@ const Contact = () => {
       if (res.data.success) {
         setSubmitted(true);
         setFormData({ name: '', email: '', mobile: '', subject: '', message: '' });
+        showToast('Your message has been sent successfully!', 'success');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit inquiry.');
+      const msg = err.response?.data?.message || 'Failed to submit inquiry.';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -59,8 +64,8 @@ const Contact = () => {
                 <Mail className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <div className="text-xs text-slate-400 font-semibold">Official Email</div>
-                  <a href="mailto:pharmacode07exam@gmail.com" className="font-bold text-white hover:text-blue-300">
-                    pharmacode07exam@gmail.com
+                  <a href="mailto:pharmacode07exams@gmail.com" className="font-bold text-white hover:text-blue-300">
+                    pharmacode07exams@gmail.com
                   </a>
                 </div>
               </div>

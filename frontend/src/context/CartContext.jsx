@@ -5,14 +5,23 @@ const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [items, setItems] = useState(() => {
-    const saved = localStorage.getItem('pharmacode_cart');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('pharmacode_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      localStorage.removeItem('pharmacode_cart');
+      return [];
+    }
   });
   const [coupon, setCoupon] = useState(null);
   const [discountAmount, setDiscountAmount] = useState(0);
 
   useEffect(() => {
-    localStorage.setItem('pharmacode_cart', JSON.stringify(items));
+    try {
+      localStorage.setItem('pharmacode_cart', JSON.stringify(items));
+    } catch (e) {
+      console.error('Failed to save cart to localStorage', e);
+    }
     if (coupon) {
       recalculateDiscount(coupon, items);
     }
@@ -37,7 +46,7 @@ export const CartProvider = ({ children }) => {
     const newItem = {
       id,
       title: item.title,
-      price: item.discountPrice !== undefined ? item.discountPrice : (item.price || 0),
+      price: item.discountPrice !== undefined && item.discountPrice !== null ? item.discountPrice : (item.price || 0),
       originalPrice: item.price || 0,
       type: resolvedType,
       thumbnail: item.thumbnail || '/placeholder-test.jpg',
@@ -61,12 +70,18 @@ export const CartProvider = ({ children }) => {
   const subtotal = items.reduce((acc, curr) => acc + curr.price, 0);
 
   const recalculateDiscount = (couponData, currentItems) => {
+    if (!couponData) return;
     const currentSubtotal = currentItems.reduce((acc, curr) => acc + curr.price, 0);
-    let disc = (currentSubtotal * couponData.discountPercent) / 100;
+    let disc = 0;
+    if (couponData.discountPercent) {
+      disc = (currentSubtotal * couponData.discountPercent) / 100;
+    } else if (couponData.discountAmount) {
+      disc = couponData.discountAmount;
+    }
     if (couponData.maxDiscount && disc > couponData.maxDiscount) {
       disc = couponData.maxDiscount;
     }
-    setDiscountAmount(Math.round(disc));
+    setDiscountAmount(Math.min(currentSubtotal, Math.round(disc)));
   };
 
   const applyCoupon = async code => {

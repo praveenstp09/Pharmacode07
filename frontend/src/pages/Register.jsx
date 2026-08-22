@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, User, Mail, Phone, Lock, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -16,18 +17,23 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
 
   const { register } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      const msg = 'Password must be at least 6 characters';
+      setError(msg);
+      showToast(msg, 'warning');
       return;
     }
 
     if (mobile && !/^[0-9]{10}$/.test(mobile.trim())) {
-      setError('Please provide a valid 10-digit mobile number');
+      const msg = 'Please provide a valid 10-digit mobile number';
+      setError(msg);
+      showToast(msg, 'warning');
       return;
     }
 
@@ -35,9 +41,12 @@ const Register = () => {
 
     try {
       await register(name.trim(), email.trim().toLowerCase(), mobile.trim(), password);
+      showToast('Registration successful! Welcome to PharmaCode07.', 'success');
       navigate(redirectUrl);
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      const msg = err.response?.data?.message || 'Registration failed. Please try again.';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }

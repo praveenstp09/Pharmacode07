@@ -38,9 +38,26 @@ const storage = multer.diskStorage({
   },
 });
 
+const fileFilter = (req, file, cb) => {
+  const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowedMimeTypes = [
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+  ];
+  if (allowedExtensions.includes(ext) || allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only PDF, JPG, PNG, and WebP files are allowed!'), false);
+  }
+};
+
 export const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size for PDFs
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size
+  fileFilter,
 });
 
 // Helper function to upload file to Cloudinary with local fallback

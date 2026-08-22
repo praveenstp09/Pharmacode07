@@ -23,6 +23,12 @@ import nonPharmaRoutes from './routes/nonPharmaRoutes.js';
 
 dotenv.config();
 
+// Ensure critical environment variables exist in production
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.error('FATAL ERROR: JWT_SECRET environment variable is required in production.');
+  process.exit(1);
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -50,7 +56,7 @@ app.use(
       if (allowedOrigins.some(o => origin.startsWith(o)) || process.env.NODE_ENV !== 'production') {
         return callback(null, true);
       }
-      return callback(null, true);
+      return callback(new Error('Blocked by CORS policy'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

@@ -251,15 +251,21 @@ export const deleteTestPaper = async (req, res) => {
     if (!paper) return res.status(404).json({ success: false, message: 'Paper not found' });
     
     const seriesId = paper.testSeriesId;
+    await FolderItem.updateMany({ testPaperId: paper._id }, { testPaperId: null });
+    await SingleModelPaper.updateMany({ testPaperId: paper._id }, { testPaperId: null });
+    await NonPharmaResource.updateMany({ testPaperId: paper._id }, { testPaperId: null });
+
     await paper.deleteOne();
 
     // Update counts
-    const papers = await TestPaper.find({ testSeriesId: seriesId });
-    const totalQ = papers.reduce((sum, p) => sum + (p.questions ? p.questions.length : 0), 0);
-    await TestSeries.findByIdAndUpdate(seriesId, {
-      totalTests: papers.length,
-      totalQuestions: totalQ,
-    });
+    if (seriesId) {
+      const papers = await TestPaper.find({ testSeriesId: seriesId });
+      const totalQ = papers.reduce((sum, p) => sum + (p.questions ? p.questions.length : 0), 0);
+      await TestSeries.findByIdAndUpdate(seriesId, {
+        totalTests: papers.length,
+        totalQuestions: totalQ,
+      });
+    }
 
     res.json({ success: true, message: 'Test Paper deleted successfully' });
   } catch (error) {
@@ -446,6 +452,36 @@ export const getContacts = async (req, res) => {
   }
 };
 
+export const toggleContactResolved = async (req, res) => {
+  try {
+    const contact = await Contact.findById(req.params.id);
+    if (!contact) return res.status(404).json({ success: false, message: 'Inquiry not found' });
+
+    contact.isResolved = !contact.isResolved;
+    contact.isRead = true;
+    contact.resolvedAt = contact.isResolved ? new Date() : null;
+    await contact.save();
+
+    res.json({
+      success: true,
+      message: `Inquiry marked as ${contact.isResolved ? 'Resolved' : 'Pending'}`,
+      data: contact,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteContact = async (req, res) => {
+  try {
+    const contact = await Contact.findByIdAndDelete(req.params.id);
+    if (!contact) return res.status(404).json({ success: false, message: 'Inquiry not found' });
+    res.json({ success: true, message: 'Inquiry deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // ======================== TEST SERIES FOLDER ITEMS ========================
 export const addFolderItemToSeries = async (req, res) => {
   try {
@@ -469,7 +505,7 @@ export const addFolderItemToSeries = async (req, res) => {
 
     let testPaperId = null;
 
-    if (contentType === 'cbt' && Array.isArray(questions) && questions.length > 0) {
+    if ((contentType === 'cbt' || folderType === 'pyq' || folderType === 'subject_wise') && Array.isArray(questions) && questions.length > 0) {
       const paper = await TestPaper.create({
         testSeriesId: series._id,
         title,
@@ -487,22 +523,26 @@ export const addFolderItemToSeries = async (req, res) => {
     const item = await FolderItem.create({
       testSeriesId: series._id,
       folderType,
-      contentType,
+      contentType: folderType === 'subject_wise' ? 'cbt' : contentType,
       title,
       subjectName: subjectName || '',
       testPaperId,
       pdfUrl: pdfUrl || '',
       year: year || 2026,
-      totalQuestions: questions ? questions.length : 100,
+      totalQuestions: questions && questions.length > 0 ? questions.length : 100,
       durationMinutes: durationMinutes || 100,
       isFreeDemo: !!isFreeDemo,
       published: true,
     });
 
+    if (testPaperId) {
+      await TestPaper.findByIdAndUpdate(testPaperId, { parentId: item._id });
+    }
+
     // Recalculate totals on series
     const allItems = await FolderItem.find({ testSeriesId: series._id });
-    const cbtCount = allItems.filter(i => i.contentType === 'cbt').length;
-    const pdfCount = allItems.filter(i => i.contentType !== 'cbt').length;
+    const cbtCount = allItems.filter(i => i.contentType === 'cbt' || i.testPaperId).length;
+    const pdfCount = allItems.filter(i => i.pdfUrl).length;
     series.totalTests = cbtCount;
     series.totalPdfs = pdfCount;
     await series.save();

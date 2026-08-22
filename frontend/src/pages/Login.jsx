@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, Mail, Lock, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -14,6 +15,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async e => {
@@ -23,9 +25,12 @@ const Login = () => {
 
     try {
       await login(email.trim().toLowerCase(), password);
+      showToast('Logged in successfully! Welcome back.', 'success');
       navigate(redirectUrl);
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password.');
+      const msg = err.response?.data?.message || 'Invalid email or password.';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }

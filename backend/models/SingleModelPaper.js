@@ -75,5 +75,7 @@ const singleModelPaperSchema = new mongoose.Schema(
   }
 );
 
+singleModelPaperSchema.index({ published: 1, examType: 1, isFree: 1 });
+
 const SingleModelPaper = mongoose.model('SingleModelPaper', singleModelPaperSchema);
 export default SingleModelPaper;

@@ -21,6 +21,8 @@ import {
   createNotification,
   deleteNotification,
   getContacts,
+  toggleContactResolved,
+  deleteContact,
   addFolderItemToSeries,
   updateFolderItem,
   deleteFolderItem,
@@ -75,6 +77,13 @@ router.get('/students', getAllStudents);
 router.get('/notifications', getNotifications);
 router.post('/notifications', createNotification);
 router.delete('/notifications/:id', deleteNotification);
+
+// Student Inquiries & Queries
 router.get('/contacts', getContacts);
+router.put('/contacts/:id/resolve', toggleContactResolved);
+router.patch('/contacts/:id/resolve', toggleContactResolved);
+router.put('/contacts/:id', toggleContactResolved);
+router.patch('/contacts/:id', toggleContactResolved);
+router.delete('/contacts/:id', deleteContact);
 
 export default router;

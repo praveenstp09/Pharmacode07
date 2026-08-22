@@ -645,8 +645,8 @@ const Home = () => {
               <Mail className="w-5 h-5 text-blue-600 flex-shrink-0" />
               <div className="text-xs">
                 <span className="font-bold text-slate-700 block">Official Support Email</span>
-                <a href="mailto:pharmacode07exam@gmail.com" className="font-extrabold text-blue-600 hover:underline">
-                  pharmacode07exam@gmail.com
+                <a href="mailto:pharmacode07exams@gmail.com" className="font-extrabold text-blue-600 hover:underline">
+                  pharmacode07exams@gmail.com
                 </a>
               </div>
             </div>

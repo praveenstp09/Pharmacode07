@@ -92,6 +92,7 @@ const studyMaterialSchema = new mongoose.Schema(
 );
 
 studyMaterialSchema.index({ category: 1, examType: 1, year: -1 });
+studyMaterialSchema.index({ published: 1, courseType: 1, semesterOrYear: 1, isPaid: 1 });
 
 const StudyMaterial = mongoose.model('StudyMaterial', studyMaterialSchema);
 export default StudyMaterial;
