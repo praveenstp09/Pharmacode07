@@ -11,7 +11,10 @@ try {
 let mongod = null;
 
 const connectDB = async () => {
-  const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/pharmacode07';
+  let uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/pharmacode07';
+  if (uri.startsWith('mongodb+srv://') && !uri.includes('retryWrites=')) {
+    uri = uri.replace(/\?*$/, '') + '?retryWrites=true&w=majority&appName=Cluster0';
+  }
   
   try {
     const conn = await mongoose.connect(uri, {

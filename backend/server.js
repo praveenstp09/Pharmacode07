@@ -53,7 +53,11 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.some(o => origin.startsWith(o)) || process.env.NODE_ENV !== 'production') {
+      if (
+        allowedOrigins.some(o => origin.startsWith(o)) ||
+        origin.endsWith('.onrender.com') ||
+        process.env.NODE_ENV !== 'production'
+      ) {
         return callback(null, true);
       }
       return callback(new Error('Blocked by CORS policy'));
