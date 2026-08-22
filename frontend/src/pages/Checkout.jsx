@@ -4,11 +4,10 @@ import {
   ShieldCheck,
   CheckCircle2,
   Lock,
-  Zap,
   CreditCard,
-  ArrowRight,
   AlertCircle,
-  QrCode,
+  Tag,
+  X,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -30,12 +29,21 @@ const loadRazorpayScript = () => {
 };
 
 const Checkout = () => {
-  const { items, subtotal, discountAmount, total, coupon, clearCart } = useCart();
+  const {
+    items,
+    subtotal,
+    discountAmount,
+    total,
+    coupon,
+    applyCoupon,
+    removeCoupon,
+    clearCart,
+  } = useCart();
   const { user, isAuthenticated, refreshUser } = useAuth();
   const navigate = useNavigate();
 
-  // Default to razorpay online payment
-  const [paymentMethod, setPaymentMethod] = useState('razorpay');
+  const [inputCoupon, setInputCoupon] = useState('');
+  const [couponMsg, setCouponMsg] = useState({ text: '', isError: false });
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
 
@@ -49,6 +57,19 @@ const Checkout = () => {
       </div>
     );
   }
+
+  const handleApplyCoupon = async e => {
+    e.preventDefault();
+    if (!inputCoupon.trim()) return;
+    setCouponMsg({ text: '', isError: false });
+    const res = await applyCoupon(inputCoupon.trim());
+    if (res.success) {
+      setCouponMsg({ text: res.message, isError: false });
+      setInputCoupon('');
+    } else {
+      setCouponMsg({ text: res.message, isError: true });
+    }
+  };
 
   const handleProcessPayment = async () => {
     if (!isAuthenticated) {
@@ -75,11 +96,25 @@ const Checkout = () => {
 
       const { order, razorpayOrder, razorpayKeyId } = orderRes.data;
 
-      // 2. If Razorpay order and key are present, open Razorpay Modal
-      if (razorpayOrder && razorpayKeyId && paymentMethod !== 'simulated') {
+      // 2. If 100% discount / Free checkout (Total === 0)
+      if (total === 0) {
+        const freeRes = await api.post('/payments/free-checkout', {
+          orderId: order.orderId,
+        });
+
+        if (freeRes.data.success) {
+          clearCart();
+          await refreshUser();
+          navigate('/dashboard?status=success&msg=Package+unlocked+successfully');
+          return;
+        }
+      }
+
+      // 3. Razorpay Payment Gateway Flow
+      if (razorpayOrder && razorpayKeyId) {
         const isLoaded = await loadRazorpayScript();
         if (!isLoaded || !window.Razorpay) {
-          throw new Error('Could not load Razorpay payment gateway. Please check your internet or disable adblockers.');
+          throw new Error('Could not load Razorpay payment gateway. Please check your internet connection.');
         }
 
         const options = {
@@ -87,7 +122,7 @@ const Checkout = () => {
           amount: razorpayOrder.amount,
           currency: razorpayOrder.currency,
           name: 'PharmaCode07',
-          description: 'Pharmacy Test Series & Model Papers Purchase',
+          description: 'Pharmacy Test Series & Study Notes Purchase',
           image: '/logo.png',
           order_id: razorpayOrder.id,
           handler: async function (response) {
@@ -133,18 +168,7 @@ const Checkout = () => {
         });
         rzp.open();
       } else {
-        // Fallback or Simulated Instant Activation
-        const simRes = await api.post('/payments/simulate', {
-          orderId: order.orderId,
-        });
-
-        if (simRes.data.success) {
-          clearCart();
-          await refreshUser();
-          navigate('/dashboard?status=success&msg=Package+unlocked+successfully');
-        } else {
-          throw new Error('Simulation failed');
-        }
+        throw new Error('Payment gateway configuration not available. Please contact admin at pharmacode07exam@gmail.com');
       }
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Payment processing failed');
@@ -171,35 +195,35 @@ const Checkout = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Student Details & Payment Method */}
+        {/* Left Column: Student Details & Payment Gateway */}
         <div className="lg:col-span-7 space-y-6">
           {/* User Account Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-3">
-            <h3 className="font-bold text-slate-900 text-sm pb-2 border-b border-slate-100 flex items-center justify-between">
-              <span>Student Details</span>
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-3">
+            <h3 className="font-extrabold text-slate-900 text-sm pb-2 border-b border-slate-100 flex items-center justify-between">
+              <span>1. Student Account</span>
               {isAuthenticated && (
-                <span className="text-[11px] text-emerald-600 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-full">
-                  Logged In
+                <span className="text-[11px] text-emerald-600 font-extrabold bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                  ✓ Verified Student
                 </span>
               )}
             </h3>
 
             {isAuthenticated ? (
-              <div className="text-xs sm:text-sm space-y-1 text-slate-700">
+              <div className="text-xs sm:text-sm space-y-1.5 text-slate-700 pt-1">
                 <div>
-                  <span className="text-slate-400 text-xs">Name:</span> <strong>{user.name}</strong>
+                  <span className="text-slate-400 text-xs">Name:</span> <strong className="text-slate-900">{user.name}</strong>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-xs">Email:</span> <strong>{user.email}</strong>
+                  <span className="text-slate-400 text-xs">Email:</span> <strong className="text-slate-900">{user.email}</strong>
                 </div>
                 {user.mobile && (
                   <div>
-                    <span className="text-slate-400 text-xs">Mobile:</span> <strong>{user.mobile}</strong>
+                    <span className="text-slate-400 text-xs">Mobile:</span> <strong className="text-slate-900">{user.mobile}</strong>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-xs sm:text-sm text-blue-800 space-y-2">
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl text-xs sm:text-sm text-blue-800 space-y-2">
                 <p className="font-semibold">
                   You are not logged in. Please log in or create an account to activate your package.
                 </p>
@@ -221,75 +245,30 @@ const Checkout = () => {
             )}
           </div>
 
-          {/* Payment Method Selector */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
-            <h3 className="font-bold text-slate-900 text-sm pb-2 border-b border-slate-100">
-              Payment Method
+          {/* Secure Razorpay Gateway Card */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+            <h3 className="font-extrabold text-slate-900 text-sm pb-2 border-b border-slate-100 flex items-center justify-between">
+              <span>2. Payment Gateway</span>
+              <span className="text-[11px] text-blue-600 font-extrabold bg-blue-50 px-2 py-0.5 rounded-full">
+                Razorpay Verified
+              </span>
             </h3>
 
-            <div className="space-y-3">
-              {/* Razorpay Online Payment Option */}
-              <label
-                className={`flex items-start p-4 rounded-2xl border-2 cursor-pointer transition ${
-                  paymentMethod === 'razorpay'
-                    ? 'border-blue-600 bg-blue-50/60 shadow-sm'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="razorpay"
-                  checked={paymentMethod === 'razorpay'}
-                  onChange={() => setPaymentMethod('razorpay')}
-                  className="mt-1 text-blue-600 focus:ring-blue-500"
-                />
-                <div className="ml-3 space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <CreditCard className="w-4 h-4 text-blue-600" />
-                    <span className="font-extrabold text-sm text-slate-900">
-                      Razorpay Gateway (UPI / QR Code / GPay / PhonePe / Cards)
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Pay securely using official Razorpay modal. Supports Google Pay, PhonePe, Paytm, BHIM UPI, Debit/Credit Cards & NetBanking.
-                  </p>
-                </div>
-              </label>
-
-              {/* Simulated Option for quick test */}
-              <label
-                className={`flex items-start p-4 rounded-2xl border-2 cursor-pointer transition ${
-                  paymentMethod === 'simulated'
-                    ? 'border-blue-600 bg-blue-50/60 shadow-sm'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="simulated"
-                  checked={paymentMethod === 'simulated'}
-                  onChange={() => setPaymentMethod('simulated')}
-                  className="mt-1 text-blue-600 focus:ring-blue-500"
-                />
-                <div className="ml-3 space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
-                    <span className="font-extrabold text-sm text-slate-900">
-                      Instant Simulated Sandbox Test (No Payment Gateway)
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Directly unlocks packages in 1 second without opening the gateway (for developer testing).
-                  </p>
-                </div>
-              </label>
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100 flex items-start space-x-3">
+              <CreditCard className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="space-y-1 text-xs">
+                <p className="font-extrabold text-slate-900">
+                  Instant Online Payment (UPI / QR / GPay / PhonePe / Paytm / Cards)
+                </p>
+                <p className="text-slate-500 leading-relaxed">
+                  All transactions are secured with 256-bit encryption. Access is unlocked instantly upon successful confirmation.
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Order Summary & Pay Action */}
+        {/* Right Column: Order Summary & Coupon Code Box */}
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xl space-y-6">
             <h3 className="font-extrabold text-slate-900 text-base pb-3 border-b border-slate-100">
@@ -314,6 +293,58 @@ const Checkout = () => {
               ))}
             </div>
 
+            {/* COUPON CODE APPLICATION BOX */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+              <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-700">
+                <Tag className="w-3.5 h-3.5 text-blue-600" />
+                <span>Apply Promo / Coupon Code</span>
+              </div>
+
+              {coupon ? (
+                <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span className="font-extrabold text-emerald-800 uppercase tracking-wider">
+                      {coupon.code} Applied (-₹{discountAmount})
+                    </span>
+                  </div>
+                  <button
+                    onClick={removeCoupon}
+                    className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                    title="Remove Coupon"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={inputCoupon}
+                    onChange={e => setInputCoupon(e.target.value.toUpperCase())}
+                    placeholder="Enter Coupon Code (e.g. WELCOME50)"
+                    className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs uppercase font-extrabold placeholder:normal-case placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-slate-900 hover:bg-black text-white font-extrabold text-xs rounded-xl shadow transition cursor-pointer"
+                  >
+                    Apply
+                  </button>
+                </form>
+              )}
+
+              {couponMsg.text && (
+                <p
+                  className={`text-[11px] font-semibold ${
+                    couponMsg.isError ? 'text-rose-600' : 'text-emerald-600'
+                  }`}
+                >
+                  {couponMsg.text}
+                </p>
+              )}
+            </div>
+
             {/* Price Calculations */}
             <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
               <div className="flex justify-between text-slate-600">
@@ -330,7 +361,7 @@ const Checkout = () => {
 
               <div className="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-100">
                 <span>Total Payable</span>
-                <span className="text-blue-600 text-lg">₹{total}</span>
+                <span className="text-blue-600 text-xl font-extrabold">₹{total}</span>
               </div>
             </div>
 
@@ -343,7 +374,9 @@ const Checkout = () => {
               <Lock className="w-4 h-4" />
               <span>
                 {processing
-                  ? 'Opening Razorpay Gateway...'
+                  ? 'Connecting to Gateway...'
+                  : total === 0
+                  ? 'Enroll Free Now'
                   : `Pay ₹${total} via Razorpay`}
               </span>
             </button>

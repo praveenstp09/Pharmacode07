@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   HelpCircle,
   CheckCircle2,
   XCircle,
   RotateCcw,
   Sparkles,
-  Zap,
-  Tag,
   ChevronRight,
 } from 'lucide-react';
 import api from '../services/api';
 
 const PracticeQuiz = () => {
+  const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubject, setSelectedSubject] = useState('All');
@@ -214,17 +214,47 @@ const PracticeQuiz = () => {
             </div>
           )}
 
-          {/* Next Action */}
-          {userSelectedOpt !== null && currentIndex < questions.length - 1 && (
+          {/* Next Action / Completion */}
+          {userSelectedOpt !== null && (
             <div className="pt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={handleNext}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow transition flex items-center space-x-2"
-              >
-                <span>Next Question</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              {currentIndex < questions.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow transition flex items-center space-x-2 cursor-pointer"
+                >
+                  <span>Next Question</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <div className="w-full bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-2xl p-6 text-center space-y-4">
+                  <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-lg font-extrabold text-slate-900">Quiz Completed! 🎉</h4>
+                    <p className="text-xs text-slate-600">
+                      You scored <strong className="text-emerald-700">{score}</strong> out of{' '}
+                      <strong>{questions.length}</strong> (
+                      {Math.round((score / questions.length) * 100)}% accuracy)
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-3 pt-2">
+                    <button
+                      onClick={fetchPracticeQuestions}
+                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition cursor-pointer"
+                    >
+                      Practice Again
+                    </button>
+                    <Link
+                      to="/test-series"
+                      className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition inline-block"
+                    >
+                      Try Full Mock Papers →
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

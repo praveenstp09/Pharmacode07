@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Menu,
@@ -15,10 +15,22 @@ import { useCart } from '../../context/CartContext';
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
   const { user, logout, isAdmin } = useAuth();
   const { itemCount } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -90,7 +102,7 @@ const Navbar = () => {
 
             {/* Auth Buttons / User Dropdown */}
             {user ? (
-              <div className="relative">
+              <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
                   className="flex items-center space-x-2 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-blue-300 bg-slate-50 hover:bg-blue-50 text-slate-800 transition"
@@ -157,7 +169,7 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Menu Toggle Button */}
-          <div className="flex items-center space-x-1 sm:hidden">
+          <div className="flex items-center space-x-1 lg:hidden">
             <Link
               to="/cart"
               className="relative p-2 text-slate-600 hover:text-blue-600 rounded-xl"

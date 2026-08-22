@@ -19,8 +19,8 @@ const studyMaterialSchema = new mongoose.Schema(
     },
     courseType: {
       type: String,
-      enum: ['B.Pharm', 'D.Pharm', 'Exam', 'General'],
-      default: 'Exam',
+      enum: ['B.Pharm', 'D.Pharm', 'QuickRevision', 'Exam', 'General'],
+      default: 'QuickRevision',
       index: true,
     },
     semesterOrYear: {

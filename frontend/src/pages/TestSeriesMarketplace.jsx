@@ -13,6 +13,8 @@ import {
 import api from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import CardSkeleton from '../components/common/SkeletonCard';
 
 const TestSeriesMarketplace = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -25,6 +27,16 @@ const TestSeriesMarketplace = () => {
 
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const { showToast } = useToast();
+
+  const handleAddToCart = (item) => {
+    const res = addToCart(item);
+    if (res?.added) {
+      showToast(`${item.title} added to cart!`, 'success');
+    } else {
+      showToast(res?.message || 'Item is already in cart', 'info');
+    }
+  };
 
   const exams = [
     'All',
@@ -147,9 +159,10 @@ const TestSeriesMarketplace = () => {
 
       {/* Test Series Grid */}
       {loading ? (
-        <div className="text-center py-20">
-          <div className="inline-block w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
-          <p className="text-slate-500 font-semibold text-sm">Loading model test papers...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <CardSkeleton key={idx} />
+          ))}
         </div>
       ) : seriesList.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 p-8 space-y-4">
@@ -174,9 +187,11 @@ const TestSeriesMarketplace = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {seriesList.map(item => {
-            const isPurchased = user?.purchasedTests?.some(
-              t => (t._id || t) === item._id
-            );
+            const isPurchased =
+              user?.role === 'admin' ||
+              (user?.purchasedTests || []).some(
+                t => (t?._id || t)?.toString() === item._id?.toString()
+              );
 
             return (
               <div
@@ -188,6 +203,7 @@ const TestSeriesMarketplace = () => {
                   <img
                     src={item.thumbnail}
                     alt={item.title}
+                    loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
@@ -264,8 +280,8 @@ const TestSeriesMarketplace = () => {
                       ) : (
                         <>
                           <button
-                            onClick={() => addToCart(item)}
-                            className="p-2.5 rounded-xl border border-slate-200 hover:border-blue-600 hover:text-blue-600 text-slate-700 transition"
+                            onClick={() => handleAddToCart(item)}
+                            className="p-2.5 rounded-xl border border-slate-200 hover:border-blue-600 hover:text-blue-600 text-slate-700 transition cursor-pointer"
                             title="Add to Cart"
                           >
                             <ShoppingCart className="w-4 h-4" />

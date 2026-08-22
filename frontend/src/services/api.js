@@ -34,12 +34,10 @@ api.interceptors.response.use(
   response => response,
   error => {
     if (error.response && error.response.status === 401) {
-      if (
-        window.location.pathname.startsWith('/dashboard') ||
-        window.location.pathname.startsWith('/admin')
-      ) {
-        localStorage.removeItem('pharmacode_token');
-        localStorage.removeItem('pharmacode_user');
+      localStorage.removeItem('pharmacode_token');
+      localStorage.removeItem('pharmacode_user');
+      const protectedRoutes = ['/dashboard', '/admin', '/attempt', '/checkout'];
+      if (protectedRoutes.some(route => window.location.pathname.startsWith(route))) {
         window.location.href = '/login?session=expired';
       }
     }

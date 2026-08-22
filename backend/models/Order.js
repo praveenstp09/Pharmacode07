@@ -66,8 +66,8 @@ const orderSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['razorpay', 'simulated'],
-      default: 'simulated',
+      enum: ['razorpay', 'simulated', 'free'],
+      default: 'razorpay',
     },
   },
   {

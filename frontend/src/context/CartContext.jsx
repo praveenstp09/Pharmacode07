@@ -18,21 +18,33 @@ export const CartProvider = ({ children }) => {
     }
   }, [items]);
 
-  const addToCart = item => {
+  const addToCart = (item, customType = null) => {
     // Check if already in cart
-    const exists = items.some(i => i.id === (item._id || item.id));
-    if (!exists) {
-      const newItem = {
-        id: item._id || item.id,
-        title: item.title,
-        price: item.discountPrice !== undefined ? item.discountPrice : item.price,
-        originalPrice: item.price,
-        type: item.totalTests !== undefined ? 'TestSeries' : 'StudyMaterial',
-        thumbnail: item.thumbnail || '/placeholder-test.jpg',
-        examType: item.examType || '',
-      };
-      setItems(prev => [...prev, newItem]);
+    const id = item._id || item.id;
+    const exists = items.some(i => i.id === id);
+    if (exists) {
+      return { added: false, message: 'Item is already in your cart' };
     }
+
+    let resolvedType = customType;
+    if (!resolvedType) {
+      if (item.totalTests !== undefined) resolvedType = 'TestSeries';
+      else if (item.hasCBT !== undefined || item.totalQuestions !== undefined) resolvedType = 'SingleModelPaper';
+      else if (item.courseType !== undefined) resolvedType = 'StudyMaterial';
+      else resolvedType = 'StudyMaterial';
+    }
+
+    const newItem = {
+      id,
+      title: item.title,
+      price: item.discountPrice !== undefined ? item.discountPrice : (item.price || 0),
+      originalPrice: item.price || 0,
+      type: resolvedType,
+      thumbnail: item.thumbnail || '/placeholder-test.jpg',
+      examType: item.examType || '',
+    };
+    setItems(prev => [...prev, newItem]);
+    return { added: true, message: 'Added to cart successfully!' };
   };
 
   const removeFromCart = id => {

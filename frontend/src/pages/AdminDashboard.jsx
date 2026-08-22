@@ -2,34 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
-  Users,
-  DollarSign,
-  FileCheck,
-  Plus,
   Trash2,
-  Edit,
-  Tag,
-  Clock,
-  BookOpen,
-  Mail,
-  CheckCircle2,
-  AlertCircle,
-  Upload,
-  Layers,
-  GraduationCap,
-  Brain,
-  Sparkles,
-  Play,
-  Lock,
-  Unlock,
-  FileText,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { PCI_CURRICULUM } from './StudyMaterials';
+import { PCI_CURRICULUM, QUICK_REVISION_SUBJECTS } from './StudyMaterials';
 
 const AdminDashboard = () => {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('stats'); // 'stats', 'series', 'materials', 'singleModels', 'nonPharma', 'coupons', 'orders', 'students'
@@ -140,18 +120,6 @@ const AdminDashboard = () => {
 
   const dPharmOptions = ['1st Year', '2nd Year'];
 
-  const defaultExamOptions = [
-    'GSSSB Pharmacist',
-    'AIIMS Pharmacist',
-    'ESIC Pharmacist',
-    'BFUHS Pharmacist',
-    'OSSSC Pharmacist',
-    'UPSSSC Pharmacist',
-    'MP Vyapam Pharmacist',
-    'Bihar BTSC Pharmacist',
-    'RRB Pharmacist',
-    'DSSSB Pharmacist',
-  ];
 
   useEffect(() => {
     if (!isAdmin) {
@@ -428,7 +396,13 @@ const AdminDashboard = () => {
   const handleCreateCoupon = async e => {
     e.preventDefault();
     try {
-      const res = await api.post('/admin/coupons', newCoupon);
+      const expiryDate = new Date(
+        Date.now() + (Number(newCoupon.expiryDays) || 30) * 24 * 60 * 60 * 1000
+      );
+      const res = await api.post('/admin/coupons', {
+        ...newCoupon,
+        expiryDate,
+      });
       if (res.data.success) {
         alert('🎉 Promo Code created successfully!');
         setNewCoupon({ code: '', discountPercent: 10, maxDiscount: 100, minOrderValue: 99, expiryDays: 30 });
@@ -525,86 +499,152 @@ const AdminDashboard = () => {
             ))}
           </div>
 
-          {/* ── ROW 2: 7-Day Mini Bar Charts ── */}
+          {/* ── ROW 2: 7-Day Interactive Graph Charts ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Registration Trend */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            {/* Registration Trend Graph */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-extrabold text-slate-800">📈 New Registrations (7 Days)</h4>
-                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-extrabold text-sm">
+                    📈
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-900">New Registrations</h4>
+                    <p className="text-[10px] text-slate-400 font-semibold">Last 7 Days Trend</p>
+                  </div>
+                </div>
+                <span className="text-xs font-extrabold text-blue-700 bg-blue-50 border border-blue-200/60 px-2.5 py-1 rounded-xl">
                   {stats.registrationTrend?.reduce((s, d) => s + d.count, 0) || 0} total
                 </span>
               </div>
-              <div className="flex items-end justify-between gap-1 h-24">
-                {(stats.registrationTrend || []).map((d, i) => {
-                  const maxVal = Math.max(...(stats.registrationTrend || []).map(x => x.count), 1);
-                  const height = Math.max((d.count / maxVal) * 100, 4);
-                  return (
-                    <div key={i} className="flex flex-col items-center flex-1 gap-1">
-                      <span className="text-[9px] font-bold text-slate-600">{d.count}</span>
-                      <div
-                        className="w-full bg-blue-500 rounded-t-md transition-all duration-300"
-                        style={{ height: `${height}%` }}
-                        title={`${d.label}: ${d.count}`}
-                      />
-                      <span className="text-[9px] text-slate-400 font-semibold">{d.label}</span>
-                    </div>
-                  );
-                })}
+
+              {/* Bar Chart Area */}
+              <div className="pt-2">
+                <div className="flex items-end justify-between gap-2 h-32 px-2 pb-2 bg-slate-50/80 rounded-2xl border border-slate-100">
+                  {(stats.registrationTrend || []).map((d, i) => {
+                    const maxVal = Math.max(...(stats.registrationTrend || []).map(x => x.count), 1);
+                    const pct = d.count > 0 ? Math.max((d.count / maxVal) * 85, 20) : 4;
+                    return (
+                      <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                        <span className={`text-[10px] font-extrabold mb-1 transition ${
+                          d.count > 0 ? 'text-blue-600 font-bold' : 'text-slate-300'
+                        }`}>
+                          {d.count}
+                        </span>
+                        <div
+                          className={`w-full max-w-[28px] rounded-t-lg transition-all duration-300 ${
+                            d.count > 0
+                              ? 'bg-gradient-to-t from-blue-600 to-indigo-400 shadow-sm group-hover:from-blue-700 group-hover:to-indigo-500'
+                              : 'bg-slate-200'
+                          }`}
+                          style={{ height: `${pct}%` }}
+                          title={`${d.label}: ${d.count} registrations`}
+                        />
+                        <span className="text-[10px] text-slate-500 font-semibold mt-1.5 whitespace-nowrap">
+                          {d.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Revenue Trend */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            {/* Revenue Trend Graph */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-extrabold text-slate-800">💰 Daily Revenue (7 Days)</h4>
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-extrabold text-sm">
+                    💰
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-900">Daily Revenue</h4>
+                    <p className="text-[10px] text-slate-400 font-semibold">Last 7 Days (₹)</p>
+                  </div>
+                </div>
+                <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-xl">
                   ₹{stats.revenueTrend?.reduce((s, d) => s + d.amount, 0)?.toLocaleString('en-IN') || 0}
                 </span>
               </div>
-              <div className="flex items-end justify-between gap-1 h-24">
-                {(stats.revenueTrend || []).map((d, i) => {
-                  const maxVal = Math.max(...(stats.revenueTrend || []).map(x => x.amount), 1);
-                  const height = Math.max((d.amount / maxVal) * 100, 4);
-                  return (
-                    <div key={i} className="flex flex-col items-center flex-1 gap-1">
-                      <span className="text-[9px] font-bold text-slate-600">₹{d.amount}</span>
-                      <div
-                        className="w-full bg-emerald-500 rounded-t-md transition-all duration-300"
-                        style={{ height: `${height}%` }}
-                        title={`${d.label}: ₹${d.amount}`}
-                      />
-                      <span className="text-[9px] text-slate-400 font-semibold">{d.label}</span>
-                    </div>
-                  );
-                })}
+
+              {/* Bar Chart Area */}
+              <div className="pt-2">
+                <div className="flex items-end justify-between gap-2 h-32 px-2 pb-2 bg-slate-50/80 rounded-2xl border border-slate-100">
+                  {(stats.revenueTrend || []).map((d, i) => {
+                    const maxVal = Math.max(...(stats.revenueTrend || []).map(x => x.amount), 1);
+                    const pct = d.amount > 0 ? Math.max((d.amount / maxVal) * 85, 20) : 4;
+                    return (
+                      <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                        <span className={`text-[10px] font-extrabold mb-1 transition truncate max-w-full ${
+                          d.amount > 0 ? 'text-emerald-600 font-bold' : 'text-slate-300'
+                        }`}>
+                          {d.amount > 0 ? `₹${d.amount}` : '0'}
+                        </span>
+                        <div
+                          className={`w-full max-w-[28px] rounded-t-lg transition-all duration-300 ${
+                            d.amount > 0
+                              ? 'bg-gradient-to-t from-emerald-600 to-teal-400 shadow-sm group-hover:from-emerald-700 group-hover:to-teal-500'
+                              : 'bg-slate-200'
+                          }`}
+                          style={{ height: `${pct}%` }}
+                          title={`${d.label}: ₹${d.amount}`}
+                        />
+                        <span className="text-[10px] text-slate-500 font-semibold mt-1.5 whitespace-nowrap">
+                          {d.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* CBT Attempts Trend */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            {/* CBT Attempts Trend Graph */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-extrabold text-slate-800">📝 CBT Attempts (7 Days)</h4>
-                <span className="text-[10px] font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
-                  {stats.attemptsTrend?.reduce((s, d) => s + d.count, 0) || 0} total
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center font-extrabold text-sm">
+                    📝
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-900">CBT Attempts</h4>
+                    <p className="text-[10px] text-slate-400 font-semibold">Last 7 Days Submissions</p>
+                  </div>
+                </div>
+                <span className="text-xs font-extrabold text-violet-700 bg-violet-50 border border-violet-200/60 px-2.5 py-1 rounded-xl">
+                  {stats.attemptsTrend?.reduce((s, d) => s + d.count, 0) || 0} tests
                 </span>
               </div>
-              <div className="flex items-end justify-between gap-1 h-24">
-                {(stats.attemptsTrend || []).map((d, i) => {
-                  const maxVal = Math.max(...(stats.attemptsTrend || []).map(x => x.count), 1);
-                  const height = Math.max((d.count / maxVal) * 100, 4);
-                  return (
-                    <div key={i} className="flex flex-col items-center flex-1 gap-1">
-                      <span className="text-[9px] font-bold text-slate-600">{d.count}</span>
-                      <div
-                        className="w-full bg-violet-500 rounded-t-md transition-all duration-300"
-                        style={{ height: `${height}%` }}
-                        title={`${d.label}: ${d.count}`}
-                      />
-                      <span className="text-[9px] text-slate-400 font-semibold">{d.label}</span>
-                    </div>
-                  );
-                })}
+
+              {/* Bar Chart Area */}
+              <div className="pt-2">
+                <div className="flex items-end justify-between gap-2 h-32 px-2 pb-2 bg-slate-50/80 rounded-2xl border border-slate-100">
+                  {(stats.attemptsTrend || []).map((d, i) => {
+                    const maxVal = Math.max(...(stats.attemptsTrend || []).map(x => x.count), 1);
+                    const pct = d.count > 0 ? Math.max((d.count / maxVal) * 85, 20) : 4;
+                    return (
+                      <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                        <span className={`text-[10px] font-extrabold mb-1 transition ${
+                          d.count > 0 ? 'text-violet-600 font-bold' : 'text-slate-300'
+                        }`}>
+                          {d.count}
+                        </span>
+                        <div
+                          className={`w-full max-w-[28px] rounded-t-lg transition-all duration-300 ${
+                            d.count > 0
+                              ? 'bg-gradient-to-t from-violet-600 to-purple-400 shadow-sm group-hover:from-violet-700 group-hover:to-purple-500'
+                              : 'bg-slate-200'
+                          }`}
+                          style={{ height: `${pct}%` }}
+                          title={`${d.label}: ${d.count} tests taken`}
+                        />
+                        <span className="text-[10px] text-slate-500 font-semibold mt-1.5 whitespace-nowrap">
+                          {d.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -1064,8 +1104,15 @@ const AdminDashboard = () => {
                     value={newMaterial.courseType}
                     onChange={e => {
                       const c = e.target.value;
-                      const initialSem = c === 'B.Pharm' ? 'Semester 1' : c === 'D.Pharm' ? '1st Year' : 'GSSSB Pharmacist';
-                      const initialSub = PCI_CURRICULUM[c]?.[initialSem]?.[0] || 'Pharmacology';
+                      let initialSem = 'Semester 1';
+                      let initialSub = 'Human Anatomy and Physiology I';
+                      if (c === 'D.Pharm') {
+                        initialSem = '1st Year';
+                        initialSub = 'Pharmaceutics';
+                      } else if (c === 'QuickRevision') {
+                        initialSem = 'All Subjects';
+                        initialSub = QUICK_REVISION_SUBJECTS[0];
+                      }
                       setNewMaterial({
                         ...newMaterial,
                         courseType: c,
@@ -1078,65 +1125,49 @@ const AdminDashboard = () => {
                     className="w-full mt-1 p-2.5 border rounded-xl font-bold bg-slate-50"
                   >
                     <option value="B.Pharm">🎓 B.Pharm (8 Semesters)</option>
-                    <option value="D.Pharm">🎓 Diploma (1st & 2nd Year)</option>
-                    <option value="Exam">🎯 State Exam Notes</option>
+                    <option value="D.Pharm">💊 Diploma (1st & 2nd Year)</option>
+                    <option value="QuickRevision">⚡ Quick Revision Notes (All Subjects)</option>
                   </select>
                 </div>
 
-                {/* Semester / Year / Exam Dropdown + Custom Exam toggle */}
+                {/* Semester / Year Selector */}
                 <div>
-                  <div className="flex items-center justify-between">
-                    <label className="font-bold text-slate-700">
-                      {newMaterial.courseType === 'B.Pharm' ? '2. Semester' : newMaterial.courseType === 'D.Pharm' ? '2. Year' : '2. Target Exam'}
-                    </label>
-                    {newMaterial.courseType === 'Exam' && (
-                      <button
-                        type="button"
-                        onClick={() => setNewMaterial({ ...newMaterial, isCustomExam: !newMaterial.isCustomExam })}
-                        className="text-[11px] text-blue-600 font-extrabold hover:underline"
-                      >
-                        {newMaterial.isCustomExam ? '← Choose from List' : '➕ Add New Exam'}
-                      </button>
-                    )}
-                  </div>
+                  <label className="font-bold text-slate-700">
+                    {newMaterial.courseType === 'B.Pharm'
+                      ? '2. Semester'
+                      : newMaterial.courseType === 'D.Pharm'
+                      ? '2. Year'
+                      : '2. Section'}
+                  </label>
 
-                  {newMaterial.courseType === 'Exam' && newMaterial.isCustomExam ? (
-                    <input
-                      type="text"
-                      required
-                      value={newMaterial.customExamName}
-                      onChange={e => setNewMaterial({ ...newMaterial, customExamName: e.target.value })}
-                      placeholder="Type New Exam Name (e.g. RRB Pharmacist 2026)"
-                      className="w-full mt-1 p-2.5 border rounded-xl font-bold bg-amber-50 text-amber-900 border-amber-300"
-                    />
-                  ) : (
-                    <select
-                      value={newMaterial.semesterOrYear}
-                      onChange={e => {
-                        const sem = e.target.value;
-                        const initialSub = PCI_CURRICULUM[newMaterial.courseType]?.[sem]?.[0] || newMaterial.subject;
-                        setNewMaterial({
-                          ...newMaterial,
-                          semesterOrYear: sem,
-                          subject: initialSub,
-                        });
-                      }}
-                      className="w-full mt-1 p-2.5 border rounded-xl font-bold bg-blue-50 text-blue-900"
-                    >
-                      {newMaterial.courseType === 'B.Pharm' &&
-                        bPharmOptions.map(sem => (
-                          <option key={sem} value={sem}>{sem}</option>
-                        ))}
-                      {newMaterial.courseType === 'D.Pharm' &&
-                        dPharmOptions.map(yr => (
-                          <option key={yr} value={yr}>{yr}</option>
-                        ))}
-                      {newMaterial.courseType === 'Exam' &&
-                        defaultExamOptions.map(ex => (
-                          <option key={ex} value={ex}>{ex}</option>
-                        ))}
-                    </select>
-                  )}
+                  <select
+                    value={newMaterial.semesterOrYear}
+                    onChange={e => {
+                      const sem = e.target.value;
+                      const initialSub =
+                        newMaterial.courseType === 'QuickRevision'
+                          ? QUICK_REVISION_SUBJECTS[0]
+                          : PCI_CURRICULUM[newMaterial.courseType]?.[sem]?.[0] || newMaterial.subject;
+                      setNewMaterial({
+                        ...newMaterial,
+                        semesterOrYear: sem,
+                        subject: initialSub,
+                      });
+                    }}
+                    className="w-full mt-1 p-2.5 border rounded-xl font-bold bg-blue-50 text-blue-900"
+                  >
+                    {newMaterial.courseType === 'B.Pharm' &&
+                      bPharmOptions.map(sem => (
+                        <option key={sem} value={sem}>{sem}</option>
+                      ))}
+                    {newMaterial.courseType === 'D.Pharm' &&
+                      dPharmOptions.map(yr => (
+                        <option key={yr} value={yr}>{yr}</option>
+                      ))}
+                    {newMaterial.courseType === 'QuickRevision' && (
+                      <option value="All Subjects">⚡ Pharmacist Exam Quick Revision</option>
+                    )}
+                  </select>
                 </div>
 
                 <div>
@@ -1146,9 +1177,10 @@ const AdminDashboard = () => {
                     onChange={e => setNewMaterial({ ...newMaterial, materialType: e.target.value })}
                     className="w-full mt-1 p-2.5 border rounded-xl font-bold"
                   >
-                    <option value="chapter_notes">📄 Chapter-Wise Notes PDF</option>
-                    <option value="pyq_paper">📑 University / Board PYQ Paper</option>
-                    <option value="revision_sheet">📋 Summary Revision Sheet</option>
+                    <option value="chapter_notes">📄 Chapter / Revision Notes PDF</option>
+                    {newMaterial.courseType !== 'QuickRevision' && (
+                      <option value="pyq_paper">📑 University / Board PYQ Paper</option>
+                    )}
                   </select>
                 </div>
               </div>

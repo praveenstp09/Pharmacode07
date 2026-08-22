@@ -21,10 +21,20 @@ const Register = () => {
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (mobile && !/^[0-9]{10}$/.test(mobile.trim())) {
+      setError('Please provide a valid 10-digit mobile number');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await register(name, email, mobile, password);
+      await register(name.trim(), email.trim().toLowerCase(), mobile.trim(), password);
       navigate(redirectUrl);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');

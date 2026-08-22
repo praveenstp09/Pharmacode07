@@ -66,10 +66,12 @@ export const AuthProvider = ({ children }) => {
       if (res.data.success) {
         setUser(res.data.user);
         localStorage.setItem('pharmacode_user', JSON.stringify(res.data.user));
+        return res.data.user;
       }
     } catch (err) {
       console.error('Error refreshing user', err);
     }
+    return null;
   };
 
   return (

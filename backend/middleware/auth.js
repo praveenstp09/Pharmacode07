@@ -38,3 +38,20 @@ export const adminOnly = (req, res, next) => {
     res.status(403).json({ success: false, message: 'Access denied: Admin role required' });
   }
 };
+
+// Optional auth - populates req.user if JWT is provided, but does not block guests
+export const optionalAuth = async (req, res, next) => {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'pharmacode_secret');
+      req.user = await User.findById(decoded.id).select('-password');
+    } catch (error) {
+      // Ignore invalid token and continue as guest
+    }
+  }
+  next();
+};

@@ -56,7 +56,7 @@ const TestSeriesDetail = () => {
       }
     };
     fetchDetail();
-  }, [slug]);
+  }, [slug, user]);
 
   if (loading) {
     return (
@@ -133,19 +133,19 @@ const TestSeriesDetail = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
               <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                 <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 1</span>
-                <span className="font-bold text-sm sm:text-base text-white">{cbtMixedList.length || series.totalTests || 1} Mixed CBTs</span>
+                <span className="font-bold text-sm sm:text-base text-white">{cbtMixedList.length || series.totalTests || 0} Mixed CBTs</span>
               </div>
               <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                 <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 2</span>
-                <span className="font-bold text-sm sm:text-base text-white">{pyqsList.length || 5} Past PYQs</span>
+                <span className="font-bold text-sm sm:text-base text-white">{pyqsList.length} Past PYQs</span>
               </div>
               <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                 <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 3</span>
-                <span className="font-bold text-sm sm:text-base text-white">{mcqPdfsList.length || 2} MCQ PDFs</span>
+                <span className="font-bold text-sm sm:text-base text-white">{mcqPdfsList.length} MCQ PDFs</span>
               </div>
               <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                 <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 4</span>
-                <span className="font-bold text-sm sm:text-base text-white">{subjectKeys.length || 6} Subjects Drill</span>
+                <span className="font-bold text-sm sm:text-base text-white">{subjectKeys.length} Subjects Drill</span>
               </div>
             </div>
           </div>

@@ -184,11 +184,12 @@ export const deleteTestSeries = async (req, res) => {
     const series = await TestSeries.findById(req.params.id);
     if (!series) return res.status(404).json({ success: false, message: 'Series not found' });
     
-    // Also delete associated test papers
+    // Also delete associated test papers and folder items
     await TestPaper.deleteMany({ testSeriesId: series._id });
+    await FolderItem.deleteMany({ testSeriesId: series._id });
     await series.deleteOne();
 
-    res.json({ success: true, message: 'Test Series and associated papers deleted' });
+    res.json({ success: true, message: 'Test Series, papers, and folder items deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -342,7 +343,23 @@ export const getCoupons = async (req, res) => {
 
 export const createCoupon = async (req, res) => {
   try {
-    const coupon = await Coupon.create(req.body);
+    const { code, discountPercent, maxDiscount, minOrderValue, expiryDays, expiryDate } = req.body;
+    
+    if (!code || !discountPercent) {
+      return res.status(400).json({ success: false, message: 'Please provide coupon code and discount percentage' });
+    }
+
+    const finalExpiry = expiryDate 
+      ? new Date(expiryDate) 
+      : new Date(Date.now() + (Number(expiryDays) || 30) * 24 * 60 * 60 * 1000);
+
+    const coupon = await Coupon.create({
+      code: code.toUpperCase().trim(),
+      discountPercent: Number(discountPercent),
+      maxDiscount: Number(maxDiscount) || 500,
+      minOrderValue: Number(minOrderValue) || 0,
+      expiryDate: finalExpiry,
+    });
     res.status(201).json({ success: true, data: coupon });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  GraduationCap,
-  BookOpen,
-  FileText,
   Download,
   Eye,
   Search,
@@ -11,10 +8,30 @@ import {
   Sparkles,
   Layers,
   FolderOpen,
+  Lock,
+  ShoppingCart,
 } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 import PdfViewerModal from '../components/common/PdfViewerModal';
 import { downloadPdfToLocal } from '../utils/downloadHelper';
+import CardSkeleton from '../components/common/SkeletonCard';
+
+// Standard Quick Revision Subjects for Pharmacist Competitive Exams
+export const QUICK_REVISION_SUBJECTS = [
+  'Pharmacology & Toxicology',
+  'Pharmaceutics & Formulation',
+  'Pharmaceutical Chemistry & Analysis',
+  'Pharmacognosy & Phytochemistry',
+  'Human Anatomy & Physiology (HAP)',
+  'Biochemistry & Clinical Pathology',
+  'Hospital & Clinical Pharmacy',
+  'Pharmaceutical Jurisprudence & Ethics',
+  'Community Pharmacy & Management',
+  'Microbiology & Biotechnology',
+];
 
 // PCI Syllabus Standard Subjects by Semester
 export const PCI_CURRICULUM = {
@@ -94,10 +111,27 @@ export const PCI_CURRICULUM = {
       'Pharmacy Law and Ethics',
     ],
   },
+  'QuickRevision': {
+    'All Subjects': QUICK_REVISION_SUBJECTS,
+  },
 };
 
 const StudyMaterials = () => {
-  const [activeCourse, setActiveCourse] = useState('B.Pharm'); // 'B.Pharm', 'D.Pharm', 'Exam'
+  const { user } = useAuth();
+  const { addToCart } = useCart();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
+  const handleAddToCart = (item) => {
+    const res = addToCart(item, 'StudyMaterial');
+    if (res?.added) {
+      showToast(`${item.title} added to cart!`, 'success');
+    } else {
+      showToast(res?.message || 'Item is already in cart', 'info');
+    }
+  };
+
+  const [activeCourse, setActiveCourse] = useState('B.Pharm'); // 'B.Pharm', 'D.Pharm', 'QuickRevision'
   const [selectedSemOrYear, setSelectedSemOrYear] = useState('Semester 1');
   const [selectedSubject, setSelectedSubject] = useState('All');
   const [activeSubTab, setActiveSubTab] = useState('all'); // 'all', 'chapter_notes', 'pyq_paper'
@@ -105,17 +139,6 @@ const StudyMaterials = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [previewPdf, setPreviewPdf] = useState({ isOpen: false, url: '', title: '', id: null });
-  const [availableExams, setAvailableExams] = useState([
-    'All',
-    'GSSSB Pharmacist',
-    'AIIMS Pharmacist',
-    'ESIC Pharmacist',
-    'BFUHS Pharmacist',
-    'OSSSC Pharmacist',
-    'UPSSSC Pharmacist',
-    'MP Vyapam Pharmacist',
-    'Bihar BTSC Pharmacist',
-  ]);
 
   const bPharmSemesters = [
     'Semester 1',
@@ -136,7 +159,7 @@ const StudyMaterials = () => {
     } else if (activeCourse === 'D.Pharm') {
       setSelectedSemOrYear('1st Year');
     } else {
-      setSelectedSemOrYear('All');
+      setSelectedSemOrYear('All Subjects');
     }
     setSelectedSubject('All');
   }, [activeCourse]);
@@ -149,21 +172,18 @@ const StudyMaterials = () => {
     setLoading(true);
     try {
       let url = `/materials?courseType=${activeCourse}`;
-      if (selectedSemOrYear !== 'All') url += `&semesterOrYear=${encodeURIComponent(selectedSemOrYear)}`;
-      if (selectedSubject !== 'All') url += `&subject=${encodeURIComponent(selectedSubject)}`;
-      if (activeSubTab !== 'all') url += `&materialType=${activeSubTab}`;
+      if (selectedSemOrYear !== 'All' && selectedSemOrYear !== 'All Subjects') {
+        url += `&semesterOrYear=${encodeURIComponent(selectedSemOrYear)}`;
+      }
+      if (selectedSubject !== 'All') {
+        url += `&subject=${encodeURIComponent(selectedSubject)}`;
+      }
+      if (activeSubTab !== 'all') {
+        url += `&materialType=${activeSubTab}`;
+      }
       const res = await api.get(url);
       if (res.data.success) {
         setMaterials(res.data.data);
-
-        // Dynamically collect any new custom exam names from DB
-        if (activeCourse === 'Exam') {
-          const distinctExams = [
-            'All',
-            ...new Set(res.data.data.map(m => m.semesterOrYear).filter(Boolean)),
-          ];
-          setAvailableExams(prev => [...new Set([...prev, ...distinctExams])]);
-        }
       }
     } catch (err) {
       console.error('Failed to load study materials:', err);
@@ -173,18 +193,23 @@ const StudyMaterials = () => {
   };
 
   // Get subjects list for current course + semester/year
-  const standardSubjects =
-    PCI_CURRICULUM[activeCourse]?.[selectedSemOrYear] || [];
+  let standardSubjects = [];
+  if (activeCourse === 'QuickRevision') {
+    standardSubjects = QUICK_REVISION_SUBJECTS;
+  } else {
+    standardSubjects = PCI_CURRICULUM[activeCourse]?.[selectedSemOrYear] || [];
+  }
 
   // Merge with any custom subjects present in the returned materials
   const dynamicSubjects = [
     ...new Set([...standardSubjects, ...materials.map(m => m.subject).filter(Boolean)]),
   ];
 
-  const filtered = materials.filter(m =>
-    m.title.toLowerCase().includes(search.toLowerCase()) ||
-    m.subject.toLowerCase().includes(search.toLowerCase()) ||
-    (m.chapter && m.chapter.toLowerCase().includes(search.toLowerCase()))
+  const filtered = materials.filter(
+    m =>
+      m.title.toLowerCase().includes(search.toLowerCase()) ||
+      m.subject.toLowerCase().includes(search.toLowerCase()) ||
+      (m.chapter && m.chapter.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -195,149 +220,157 @@ const StudyMaterials = () => {
         <ChevronRight className="w-3.5 h-3.5" />
         <span className="text-slate-800 font-bold">Study Materials</span>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-blue-600 font-bold">{activeCourse}</span>
-        {selectedSemOrYear !== 'All' && (
+        <span className="text-blue-600 font-bold">
+          {activeCourse === 'QuickRevision' ? 'Quick Revision Notes' : activeCourse}
+        </span>
+        {selectedSemOrYear !== 'All' && selectedSemOrYear !== 'All Subjects' && (
           <>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-indigo-600 font-bold">{selectedSemOrYear}</span>
+            <span className="text-slate-700 font-medium">{selectedSemOrYear}</span>
           </>
         )}
         {selectedSubject !== 'All' && (
           <>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-slate-800 font-extrabold">{selectedSubject}</span>
+            <span className="text-indigo-600 font-bold">{selectedSubject}</span>
           </>
         )}
       </div>
 
-      {/* Banner */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 rounded-3xl p-8 sm:p-12 text-white shadow-xl">
-        <div className="max-w-3xl space-y-4">
-          <div className="inline-flex items-center space-x-2 bg-blue-500/20 border border-blue-400/30 px-3 py-1 rounded-full text-xs font-bold text-blue-300">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Pillar 2: Semester Notes & University PYQs Hub</span>
+      {/* Header Banner */}
+      <div className="bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-900 rounded-3xl p-6 sm:p-10 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-2 max-w-2xl">
+          <div className="inline-flex items-center space-x-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold text-blue-200 backdrop-blur-sm">
+            <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+            <span>Pillar 2: Pharmacy Study & Revision Hub</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            Pharmacy Notes & Solved Papers Library
+          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
+            Curriculum Notes, PYQs & Quick Revision
           </h1>
-          <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            Select Course ➔ Choose Semester / Year ➔ Select Subject ➔ Download or Preview Chapter-Wise Notes and University PYQ Papers.
+          <p className="text-xs sm:text-sm text-blue-100/90 leading-relaxed">
+            Standard PCI-aligned chapter notes for B.Pharm & D.Pharm, plus high-yield Quick Revision PDF sheets for all Pharmacist examinations.
           </p>
+        </div>
+
+        {/* Search */}
+        <div className="relative w-full md:w-72">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search topic, chapter, subject..."
+            className="w-full pl-10 pr-4 py-2.5 bg-white/10 border border-white/20 rounded-2xl text-xs sm:text-sm text-white placeholder:text-blue-200/60 focus:bg-white focus:text-slate-900 focus:outline-none transition shadow-inner font-medium"
+          />
         </div>
       </div>
 
-      {/* LEVEL 1: Course Level Switcher */}
-      <div className="grid grid-cols-3 gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
-        <button
-          onClick={() => setActiveCourse('B.Pharm')}
-          className={`py-3.5 px-4 rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center space-x-2 transition ${
-            activeCourse === 'B.Pharm'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'text-slate-700 hover:bg-slate-50'
-          }`}
-        >
-          <GraduationCap className="w-4 h-4" />
-          <span>🎓 B.Pharm (8 Semesters)</span>
-        </button>
-
-        <button
-          onClick={() => setActiveCourse('D.Pharm')}
-          className={`py-3.5 px-4 rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center space-x-2 transition ${
-            activeCourse === 'D.Pharm'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'text-slate-700 hover:bg-slate-50'
-          }`}
-        >
-          <BookOpen className="w-4 h-4" />
-          <span>🎓 Diploma (1st & 2nd Year)</span>
-        </button>
-
-        <button
-          onClick={() => setActiveCourse('Exam')}
-          className={`py-3.5 px-4 rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center space-x-2 transition ${
-            activeCourse === 'Exam'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'text-slate-700 hover:bg-slate-50'
-          }`}
-        >
-          <Layers className="w-4 h-4" />
-          <span>🎯 State Exam Notes</span>
-        </button>
+      {/* LEVEL 1: Category Pillars (B.Pharm vs D.Pharm vs Quick Revision Notes) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[
+          {
+            id: 'B.Pharm',
+            title: '🎓 B.Pharm Notes & PYQs',
+            sub: 'Semesters 1 to 8 • PCI Curriculum',
+          },
+          {
+            id: 'D.Pharm',
+            title: '💊 Diploma (D.Pharm)',
+            sub: '1st & 2nd Year • ER-2020 Syllabus',
+          },
+          {
+            id: 'QuickRevision',
+            title: '⚡ Quick Revision Notes',
+            sub: 'All Subjects • High-Yield Pharmacist PDF Sheets',
+          },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveCourse(tab.id)}
+            className={`p-4 rounded-2xl border-2 text-left transition flex flex-col justify-between ${
+              activeCourse === tab.id
+                ? 'border-blue-600 bg-blue-50/80 shadow-md ring-2 ring-blue-600/20'
+                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50'
+            }`}
+          >
+            <span
+              className={`font-extrabold text-sm sm:text-base ${
+                activeCourse === tab.id ? 'text-blue-700' : 'text-slate-800'
+              }`}
+            >
+              {tab.title}
+            </span>
+            <span className="text-[11px] text-slate-500 font-medium mt-1">{tab.sub}</span>
+          </button>
+        ))}
       </div>
 
-      {/* LEVEL 2: Semester / Year / Target Exam Selector */}
-      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-          {activeCourse === 'B.Pharm'
-            ? 'Step 1: Select B.Pharm Semester'
-            : activeCourse === 'D.Pharm'
-            ? 'Step 1: Select Diploma Year'
-            : 'Step 1: Select Target Exam'}
-        </span>
+      {/* LEVEL 2: Semester / Year / Quick Revision Selector */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block flex items-center space-x-1.5">
+            <Layers className="w-4 h-4 text-blue-600" />
+            <span>
+              {activeCourse === 'B.Pharm' && 'Select Semester (PCI Scheme)'}
+              {activeCourse === 'D.Pharm' && 'Select Diploma Year (ER-2020)'}
+              {activeCourse === 'QuickRevision' && 'Pharmacist Exam Quick Revision PDF Notes'}
+            </span>
+          </span>
+        </div>
+
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {/* B.PHARM SEMESTERS */}
           {activeCourse === 'B.Pharm' &&
             bPharmSemesters.map(sem => (
               <button
                 key={sem}
-                onClick={() => {
-                  setSelectedSemOrYear(sem);
-                  setSelectedSubject('All');
-                }}
+                onClick={() => setSelectedSemOrYear(sem)}
                 className={`px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition ${
                   selectedSemOrYear === sem
                     ? 'bg-blue-600 text-white shadow'
-                    : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
                 {sem}
               </button>
             ))}
 
+          {/* D.PHARM YEARS */}
           {activeCourse === 'D.Pharm' &&
             dPharmYears.map(yr => (
               <button
                 key={yr}
-                onClick={() => {
-                  setSelectedSemOrYear(yr);
-                  setSelectedSubject('All');
-                }}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition ${
+                onClick={() => setSelectedSemOrYear(yr)}
+                className={`px-5 py-2.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition ${
                   selectedSemOrYear === yr
                     ? 'bg-blue-600 text-white shadow'
-                    : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
                 {yr}
               </button>
             ))}
 
-          {activeCourse === 'Exam' &&
-            availableExams.map(ex => (
-              <button
-                key={ex}
-                onClick={() => {
-                  setSelectedSemOrYear(ex);
-                  setSelectedSubject('All');
-                }}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition ${
-                  selectedSemOrYear === ex
-                    ? 'bg-blue-600 text-white shadow'
-                    : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-                }`}
-              >
-                {ex}
-              </button>
-            ))}
+          {/* QUICK REVISION PILL */}
+          {activeCourse === 'QuickRevision' && (
+            <div className="px-4 py-2 rounded-xl text-xs font-extrabold bg-blue-50 text-blue-800 border border-blue-200">
+              ⚡ High-Yield Formula & Drug Summaries for All State & Central Pharmacist Exams
+            </div>
+          )}
         </div>
       </div>
 
-      {/* LEVEL 3: Subjects Selector (Semester ➔ Subjects) */}
+      {/* LEVEL 3: Subjects Selector */}
       {dynamicSubjects.length > 0 && (
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block flex items-center space-x-1.5">
               <FolderOpen className="w-4 h-4 text-blue-600" />
-              <span>Step 2: Choose Subject in {selectedSemOrYear}</span>
+              <span>
+                {activeCourse === 'QuickRevision'
+                  ? 'Filter by Subject'
+                  : `Choose Subject in ${selectedSemOrYear}`}
+              </span>
             </span>
           </div>
 
@@ -369,7 +402,7 @@ const StudyMaterials = () => {
         </div>
       )}
 
-      {/* LEVEL 4: Materials Explorer (Chapter Notes vs PYQ Papers) */}
+      {/* LEVEL 4: Materials Explorer */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
           {/* Sub-tabs: All vs Chapter Notes vs PYQ Papers */}
@@ -382,7 +415,7 @@ const StudyMaterials = () => {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              All Content
+              All Documents
             </button>
             <button
               onClick={() => setActiveSubTab('chapter_notes')}
@@ -392,53 +425,52 @@ const StudyMaterials = () => {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              📄 Chapter-Wise Notes
+              📄 Chapter / Revision Notes
             </button>
-            <button
-              onClick={() => setActiveSubTab('pyq_paper')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                activeSubTab === 'pyq_paper'
-                  ? 'bg-white text-blue-600 shadow'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              📑 University/Board PYQs
-            </button>
+            {activeCourse !== 'QuickRevision' && (
+              <button
+                onClick={() => setActiveSubTab('pyq_paper')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                  activeSubTab === 'pyq_paper'
+                    ? 'bg-white text-blue-600 shadow'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                📑 PYQ Question Papers
+              </button>
+            )}
           </div>
 
-          {/* Search */}
-          <div className="relative min-w-[240px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search chapters or keywords..."
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </div>
+          <span className="text-xs text-slate-500 font-bold">
+            Showing {filtered.length} PDF documents
+          </span>
         </div>
 
-        {/* Results List */}
+        {/* Content List / Grid */}
         {loading ? (
-          <div className="min-h-[30vh] flex flex-col items-center justify-center">
-            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
-            <p className="text-xs font-semibold text-slate-500">Loading documents...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <CardSkeleton key={idx} />
+            ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 space-y-2">
-            <FileText className="w-10 h-10 text-slate-300 mx-auto" />
-            <p className="text-sm font-bold text-slate-700">No notes found for this subject/semester</p>
-            <p className="text-xs text-slate-400">
-              Admin is updating notes for {selectedSubject !== 'All' ? selectedSubject : selectedSemOrYear}.
+          <div className="py-16 text-center space-y-3 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto text-xl font-bold">
+              📚
+            </div>
+            <h3 className="text-base font-extrabold text-slate-800">
+              No Documents Uploaded Yet
+            </h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              New PDF notes and PYQs for this category will be uploaded shortly by admin.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map(item => (
               <div
                 key={item._id}
-                className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-blue-300 transition flex flex-col justify-between space-y-4"
+                className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-blue-300 transition flex flex-col justify-between space-y-4 shadow-sm"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -446,7 +478,7 @@ const StudyMaterials = () => {
                       {item.subject}
                     </span>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                      {item.materialType === 'chapter_notes' ? 'Chapter Notes' : 'PYQ Paper'}
+                      {item.materialType === 'chapter_notes' ? 'Notes PDF' : 'PYQ Paper'}
                     </span>
                   </div>
 
@@ -462,37 +494,71 @@ const StudyMaterials = () => {
 
                 <div className="flex items-center justify-between pt-3 border-t border-slate-200/80">
                   <span className="text-xs text-emerald-600 font-extrabold">
-                    {item.isPaid ? `₹${item.price}` : 'Free Access'}
+                    {item.isPaid
+                      ? ((user?.purchasedMaterials || []).some(
+                          id => (id?._id || id)?.toString() === item._id?.toString()
+                        ) || user?.role === 'admin'
+                          ? '✓ Enrolled'
+                          : `₹${item.price}`)
+                      : 'Free Access'}
                   </span>
 
                   <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() =>
-                        setPreviewPdf({
-                          isOpen: true,
-                          url: item.fileUrl,
-                          title: item.title,
-                          id: item._id,
-                        })
-                      }
-                      className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl flex items-center space-x-1 transition"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Preview</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (item._id) {
-                          api.post(`/materials/${item._id}/track-download`).catch(() => {});
-                        }
-                        const safeName = (item.title || 'Pharmacode07_Notes').replace(/[^a-zA-Z0-9_-]/g, '_');
-                        downloadPdfToLocal(item.fileUrl, `${safeName}.pdf`);
-                      }}
-                      className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1 transition shadow cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download</span>
-                    </button>
+                    {!item.isPaid ||
+                    user?.role === 'admin' ||
+                    (user?.purchasedMaterials || []).some(
+                      id => (id?._id || id)?.toString() === item._id?.toString()
+                    ) ? (
+                      <>
+                        <button
+                          onClick={() =>
+                            setPreviewPdf({
+                              isOpen: true,
+                              url: item.fileUrl,
+                              title: item.title,
+                              id: item._id,
+                            })
+                          }
+                          className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl flex items-center space-x-1 transition cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Preview</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (item._id) {
+                              api.post(`/materials/${item._id}/track-download`).catch(() => {});
+                            }
+                            const safeName = (item.title || 'Pharmacode07_Notes').replace(/[^a-zA-Z0-9_-]/g, '_');
+                            downloadPdfToLocal(item.fileUrl, `${safeName}.pdf`);
+                          }}
+                          className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1 transition shadow cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleAddToCart(item)}
+                          className="p-2 border border-slate-200 hover:border-blue-600 hover:text-blue-600 text-slate-700 rounded-xl transition cursor-pointer"
+                          title="Add to Cart"
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            addToCart(item, 'StudyMaterial');
+                            navigate('/checkout');
+                          }}
+                          className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1 transition shadow cursor-pointer"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Buy Now (₹{item.price})</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

@@ -6,13 +6,13 @@ import {
   updateSingleModelPaper,
   deleteSingleModelPaper,
 } from '../controllers/singleModelController.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, adminOnly, optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Public routes
-router.get('/', getSingleModelPapers);
-router.get('/:slug', getSingleModelPaperBySlug);
+// Public routes (with optional authentication)
+router.get('/', optionalAuth, getSingleModelPapers);
+router.get('/:slug', optionalAuth, getSingleModelPaperBySlug);
 
 // Admin-only routes
 router.post('/', protect, adminOnly, createSingleModelPaper);

@@ -23,8 +23,8 @@ export const PrivacyPolicy = () => {
         <h2 className="text-lg font-bold text-slate-900 pt-2">Contact Us</h2>
         <p>
           If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us at{' '}
-          <a href="mailto:royaldcx07031999@gmail.com" className="text-blue-600 font-bold">
-            royaldcx07031999@gmail.com
+          <a href="mailto:pharmacode07exam@gmail.com" className="text-blue-600 font-bold">
+            pharmacode07exam@gmail.com
           </a>.
         </p>
       </div>
@@ -72,8 +72,8 @@ export const RefundPolicy = () => {
         <h2 className="text-lg font-bold text-slate-900 pt-2">Duplicate Transactions & Technical Issues</h2>
         <p>
           If your account was debited multiple times for a single order due to a technical glitch, or if your test was not activated after payment, please contact our support team immediately at{' '}
-          <a href="mailto:royaldcx07031999@gmail.com" className="text-blue-600 font-bold">
-            royaldcx07031999@gmail.com
+          <a href="mailto:pharmacode07exam@gmail.com" className="text-blue-600 font-bold">
+            pharmacode07exam@gmail.com
           </a>. Verified duplicate charges will be refunded to your original payment method within 5–7 business days.
         </p>
       </div>

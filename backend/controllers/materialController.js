@@ -21,10 +21,19 @@ export const getMaterials = async (req, res) => {
 
     const materials = await StudyMaterial.find(query).sort({ year: -1, createdAt: -1 });
 
+    // Sanitize: strip fileUrl for paid materials in public list
+    const sanitizedMaterials = materials.map(m => {
+      const obj = m.toObject();
+      if (obj.isPaid) {
+        obj.fileUrl = '';
+      }
+      return obj;
+    });
+
     res.json({
       success: true,
-      count: materials.length,
-      data: materials,
+      count: sanitizedMaterials.length,
+      data: sanitizedMaterials,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -54,9 +63,14 @@ export const getMaterialById = async (req, res) => {
       }
     }
 
+    const materialData = material.toObject();
+    if (!isUnlocked) {
+      materialData.fileUrl = ''; // Hide paid URL from locked users
+    }
+
     res.json({
       success: true,
-      data: material,
+      data: materialData,
       isUnlocked,
     });
   } catch (error) {

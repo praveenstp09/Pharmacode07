@@ -1,30 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Clock } from 'lucide-react';
 
-const QuizTimer = ({ initialMinutes, onTimeUp, onTick }) => {
-  const [secondsLeft, setSecondsLeft] = useState(initialMinutes * 60);
+const QuizTimer = ({ initialMinutes = 100, onTimeUp, onTick }) => {
+  const validMinutes = isNaN(initialMinutes) || initialMinutes <= 0 ? 100 : initialMinutes;
+  const [secondsLeft, setSecondsLeft] = useState(validMinutes * 60);
+  const onTimeUpRef = useRef(onTimeUp);
+  const onTickRef = useRef(onTick);
 
   useEffect(() => {
-    if (secondsLeft <= 0) {
-      onTimeUp();
-      return;
-    }
+    onTimeUpRef.current = onTimeUp;
+    onTickRef.current = onTick;
+  });
 
+  useEffect(() => {
     const timer = setInterval(() => {
       setSecondsLeft(prev => {
-        const next = prev - 1;
-        if (onTick) onTick(next);
-        if (next <= 0) {
+        if (prev <= 1) {
           clearInterval(timer);
-          onTimeUp();
+          onTimeUpRef.current?.();
           return 0;
         }
+        const next = prev - 1;
+        onTickRef.current?.(next);
         return next;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [secondsLeft]);
+  }, []);
 
   const hours = Math.floor(secondsLeft / 3600);
   const minutes = Math.floor((secondsLeft % 3600) / 60);

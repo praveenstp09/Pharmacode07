@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
-  Award,
   CheckCircle2,
   XCircle,
   Clock,
   RotateCcw,
   LayoutDashboard,
   HelpCircle,
-  TrendingUp,
-  Tag,
   Check,
   X,
-  Sparkles,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import api from '../services/api';

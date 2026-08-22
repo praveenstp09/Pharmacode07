@@ -1,5 +1,6 @@
 import SingleModelPaper from '../models/SingleModelPaper.js';
 import TestPaper from '../models/TestPaper.js';
+import TestAttempt from '../models/TestAttempt.js';
 import Purchase from '../models/Purchase.js';
 
 // Get all single model papers (Public)
@@ -16,10 +17,18 @@ export const getSingleModelPapers = async (req, res) => {
       .populate('testPaperId', 'durationMinutes totalMarks totalQuestions positiveMarks negativeMarks difficulty')
       .sort({ createdAt: -1 });
 
+    const sanitizedPapers = papers.map(p => {
+      const obj = p.toObject();
+      if (!obj.isFree) {
+        obj.pdfUrl = '';
+      }
+      return obj;
+    });
+
     res.json({
       success: true,
-      count: papers.length,
-      data: papers,
+      count: sanitizedPapers.length,
+      data: sanitizedPapers,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -52,9 +61,14 @@ export const getSingleModelPaperBySlug = async (req, res) => {
       }
     }
 
+    const paperData = paper.toObject();
+    if (!isUnlocked) {
+      paperData.pdfUrl = '';
+    }
+
     res.json({
       success: true,
-      data: paper,
+      data: paperData,
       isUnlocked,
     });
   } catch (error) {
@@ -126,6 +140,10 @@ export const createSingleModelPaper = async (req, res) => {
       published: true,
     });
 
+    if (testPaperId) {
+      await TestPaper.findByIdAndUpdate(testPaperId, { parentId: modelPaper._id });
+    }
+
     res.status(201).json({
       success: true,
       message: 'Single Model Paper created successfully!',
@@ -161,7 +179,9 @@ export const deleteSingleModelPaper = async (req, res) => {
     }
     if (paper.testPaperId) {
       await TestPaper.findByIdAndDelete(paper.testPaperId);
+      await TestAttempt.deleteMany({ testPaperId: paper.testPaperId });
     }
+    await Purchase.deleteMany({ itemType: 'SingleModelPaper', itemId: paper._id });
     await paper.deleteOne();
     res.json({ success: true, message: 'Single Model Paper deleted successfully' });
   } catch (error) {

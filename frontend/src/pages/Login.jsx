@@ -22,7 +22,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
+      await login(email.trim().toLowerCase(), password);
       navigate(redirectUrl);
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid email or password.');

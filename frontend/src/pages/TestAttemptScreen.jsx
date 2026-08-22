@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ShieldCheck,
   ChevronLeft,
   ChevronRight,
   Send,
   AlertTriangle,
-  HelpCircle,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import QuizTimer from '../components/test/QuizTimer';
 import QuestionCard from '../components/test/QuestionCard';
 import QuestionPalette from '../components/test/QuestionPalette';
@@ -18,13 +17,14 @@ const TestAttemptScreen = () => {
   const { paperId } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
+  const { showToast } = useToast();
 
   const [paper, setPaper] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // State arrays for 120 questions
+  // State arrays for questions
   const [answers, setAnswers] = useState([]);
   const [reviewFlags, setReviewFlags] = useState([]);
   const [visitedFlags, setVisitedFlags] = useState([]);
@@ -34,8 +34,6 @@ const TestAttemptScreen = () => {
   // Submit Modal
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  const startTimeRef = useRef(Date.now());
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -140,7 +138,7 @@ const TestAttemptScreen = () => {
         navigate(`/result/${res.data.attemptId}`);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error submitting test. Please try again.');
+      showToast(err.response?.data?.message || 'Error submitting test. Please try again.', 'error');
       setSubmitting(false);
       setShowSubmitModal(false);
     }

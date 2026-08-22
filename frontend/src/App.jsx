@@ -1,11 +1,14 @@
-import React from 'react';
+import React,{useEffect} from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { ToastProvider } from './context/ToastContext';
 
 import Banner from './components/layout/Banner';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
+import MobileBottomNav from './components/layout/MobileBottomNav';
+import BackToTop from './components/common/BackToTop';
 
 import Home from './pages/Home';
 import TestSeriesMarketplace from './pages/TestSeriesMarketplace';
@@ -22,11 +25,23 @@ import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import { PrivacyPolicy, Terms, RefundPolicy } from './pages/LegalPages';
+
+// Auto-scroll to top on page navigation
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
+
+  return null;
+};
 
 // Layout wrapper to conditionally hide navbar/footer during full-screen CBT test attempt
 const Layout = ({ children }) => {
@@ -37,8 +52,10 @@ const Layout = ({ children }) => {
     <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
       {!isTestAttempt && <Banner />}
       {!isTestAttempt && <Navbar />}
-      <main className="flex-grow">{children}</main>
+      <main className={`flex-grow ${!isTestAttempt ? 'pb-16 md:pb-0' : ''}`}>{children}</main>
       {!isTestAttempt && <Footer />}
+      {!isTestAttempt && <MobileBottomNav />}
+      {!isTestAttempt && <BackToTop />}
     </div>
   );
 };
@@ -47,8 +64,10 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Router>
-          <Layout>
+        <ToastProvider>
+          <Router>
+            <ScrollToTop />
+            <Layout>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/test-series" element={<TestSeriesMarketplace />} />
@@ -65,6 +84,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/about" element={<About />} />
@@ -84,6 +104,7 @@ function App() {
             </Routes>
           </Layout>
         </Router>
+        </ToastProvider>
       </CartProvider>
     </AuthProvider>
   );

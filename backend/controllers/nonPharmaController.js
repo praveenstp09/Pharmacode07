@@ -1,6 +1,6 @@
 import NonPharmaResource from '../models/NonPharmaResource.js';
 import TestPaper from '../models/TestPaper.js';
-import Purchase from '../models/Purchase.js';
+import TestAttempt from '../models/TestAttempt.js';
 
 // Get non-pharma resources by section (Public)
 export const getNonPharmaResources = async (req, res) => {
@@ -61,6 +61,7 @@ export const createNonPharmaResource = async (req, res) => {
       testPaperId = testPaper._id;
     }
 
+    const freeFlag = isFree !== undefined ? isFree : true;
     const resource = await NonPharmaResource.create({
       title,
       section,
@@ -71,10 +72,15 @@ export const createNonPharmaResource = async (req, res) => {
       totalQuestions: questions ? questions.length : 25,
       durationMinutes: durationMinutes || 30,
       relevanceMonth: relevanceMonth || '',
-      isFree: isFree !== undefined ? isFree : true,
+      isFree: freeFlag,
+      isPaid: !freeFlag && (price || 0) > 0,
       price: price || 0,
       published: true,
     });
+
+    if (testPaperId) {
+      await TestPaper.findByIdAndUpdate(testPaperId, { parentId: resource._id });
+    }
 
     res.status(201).json({
       success: true,
@@ -111,6 +117,7 @@ export const deleteNonPharmaResource = async (req, res) => {
     }
     if (resource.testPaperId) {
       await TestPaper.findByIdAndDelete(resource.testPaperId);
+      await TestAttempt.deleteMany({ testPaperId: resource.testPaperId });
     }
     await resource.deleteOne();
     res.json({ success: true, message: 'Non-Pharma resource deleted successfully' });

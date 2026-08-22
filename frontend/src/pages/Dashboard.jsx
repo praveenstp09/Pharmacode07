@@ -1,33 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  LayoutDashboard,
   FileCheck,
   Award,
   Clock,
-  RotateCcw,
   Download,
   BookOpen,
   TrendingUp,
-  Bell,
   CheckCircle2,
   Play,
-  ArrowRight,
-  User,
+  Zap,
+  Layers,
+  FileText,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import CardSkeleton, { TableSkeleton } from '../components/common/SkeletonCard';
 
 const Dashboard = () => {
   const [searchParams] = useSearchParams();
   const purchaseSuccess = searchParams.get('status') === 'success';
 
   const { user, refreshUser } = useAuth();
-  const [activeTab, setActiveTab] = useState('tests'); // 'tests', 'attempts', 'materials'
+  const [activeTab, setActiveTab] = useState('tests'); // 'tests', 'models', 'attempts', 'materials', 'nonpharma'
   const [purchasedSeries, setPurchasedSeries] = useState([]);
+  const [purchasedModels, setPurchasedModels] = useState([]);
   const [attempts, setAttempts] = useState([]);
   const [materials, setMaterials] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  const [nonPharma, setNonPharma] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,7 +37,13 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      await refreshUser();
+      const freshUser = await refreshUser();
+      const currentUser = freshUser || user;
+      const userTests = currentUser?.purchasedTests || [];
+      const userMaterials = currentUser?.purchasedMaterials || [];
+      const userSingleModels = currentUser?.purchasedSingleModels || [];
+      const userNonPharma = currentUser?.purchasedNonPharma || [];
+      const isUserAdmin = currentUser?.role === 'admin';
 
       // 1. Fetch user attempts
       const attemptsRes = await api.get('/attempts/my-attempts');
@@ -48,26 +54,48 @@ const Dashboard = () => {
       // 2. Fetch all test series to match user's purchased ones
       const seriesRes = await api.get('/test-series');
       if (seriesRes.data.success) {
-        // Filter those user owns
-        const owned = seriesRes.data.data.filter(s =>
-          user?.purchasedTests?.some(t => (t._id || t) === s._id)
+        const owned = seriesRes.data.data.filter(
+          s =>
+            isUserAdmin ||
+            userTests.some(t => (t?._id || t)?.toString() === s._id?.toString())
         );
         setPurchasedSeries(owned);
       }
 
-      // 3. Fetch materials
+      // 3. Fetch single model papers
+      const modelRes = await api.get('/single-models');
+      if (modelRes.data.success) {
+        const ownedModels = modelRes.data.data.filter(
+          m =>
+            m.isFree ||
+            isUserAdmin ||
+            userSingleModels.some(p => (p?._id || p)?.toString() === m._id?.toString())
+        );
+        setPurchasedModels(ownedModels);
+      }
+
+      // 4. Fetch materials
       const matRes = await api.get('/materials');
       if (matRes.data.success) {
         const ownedMat = matRes.data.data.filter(
-          m => !m.isPaid || user?.purchasedMaterials?.some(p => (p._id || p) === m._id)
+          m =>
+            !m.isPaid ||
+            isUserAdmin ||
+            userMaterials.some(p => (p?._id || p)?.toString() === m._id?.toString())
         );
         setMaterials(ownedMat);
       }
 
-      // 4. Fetch announcements
-      const notifRes = await api.get('/admin/notifications').catch(() => ({ data: { data: [] } }));
-      if (notifRes.data?.data) {
-        setNotifications(notifRes.data.data);
+      // 5. Fetch non-pharma resources
+      const nonPharmaRes = await api.get('/non-pharma');
+      if (nonPharmaRes.data.success) {
+        const ownedNP = nonPharmaRes.data.data.filter(
+          np =>
+            np.isFree ||
+            isUserAdmin ||
+            userNonPharma.some(p => (p?._id || p)?.toString() === np._id?.toString())
+        );
+        setNonPharma(ownedNP);
       }
     } catch (err) {
       console.error('Error fetching dashboard data', err);
@@ -84,98 +112,112 @@ const Dashboard = () => {
           attempts.reduce((acc, a) => acc + (a.percentage || 0), 0) / totalAttemptsCount
         )
       : 0;
-  const bestScore =
-    totalAttemptsCount > 0
-      ? Math.max(...attempts.map(a => a.percentage || 0))
-      : 0;
 
   return (
-    <div className="min-h-screen py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-      {/* Purchase Success Toast */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Payment Success Alert */}
       {purchaseSuccess && (
-        <div className="bg-emerald-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-5 rounded-2xl flex items-center justify-between shadow-sm animate-in fade-in">
           <div className="flex items-center space-x-3">
-            <CheckCircle2 className="w-6 h-6 flex-shrink-0" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
+              ✓
+            </div>
             <div>
-              <div className="font-bold text-sm">Payment Successful & Test Unlocked!</div>
-              <div className="text-xs text-emerald-100">
-                Your model papers are now active. Click "Start Test" below to begin practicing.
-              </div>
+              <h4 className="font-extrabold text-sm sm:text-base">Order Completed Successfully!</h4>
+              <p className="text-xs text-emerald-700">
+                Your purchased package is now fully unlocked. Start practicing below!
+              </p>
             </div>
           </div>
+          <button
+            onClick={() => window.history.replaceState({}, '', '/dashboard')}
+            className="text-xs text-emerald-600 font-bold hover:underline"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-3xl p-6 sm:p-10 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+      {/* Header Profile Section */}
+      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 rounded-3xl p-6 sm:p-10 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
-          <span className="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-            Student Portal
-          </span>
-          <h1 className="text-2xl sm:text-4xl font-extrabold text-white">
-            Welcome back, {user?.name}! 👋
+          <div className="inline-flex items-center space-x-2 bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+            <span>Student Learning Portal</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
+            Welcome back, {user?.name || 'Pharmacist'}! 👋
           </h1>
-          <p className="text-slate-300 text-xs sm:text-sm">
-            Registered Mobile: <strong>+91 {user?.mobile}</strong> | Email: <strong>{user?.email}</strong>
+          <p className="text-blue-100 text-xs sm:text-sm max-w-xl">
+            Track your mock test attempts, review solutions with rationales, and access your unlocked study materials.
           </p>
         </div>
 
-        <Link
-          to="/test-series"
-          className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-extrabold rounded-xl shadow-lg text-sm transition text-center whitespace-nowrap self-start md:self-auto"
-        >
-          + Unlock More Model Papers
-        </Link>
-      </div>
-
-      {/* Performance Summary Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <div className="text-xs font-semibold text-slate-500 flex items-center space-x-1.5">
-            <FileCheck className="w-4 h-4 text-blue-600" />
-            <span>Unlocked Series</span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-            {purchasedSeries.length}
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <div className="text-xs font-semibold text-slate-500 flex items-center space-x-1.5">
-            <Clock className="w-4 h-4 text-emerald-600" />
-            <span>Tests Attempted</span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-            {totalAttemptsCount}
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <div className="text-xs font-semibold text-slate-500 flex items-center space-x-1.5">
-            <TrendingUp className="w-4 h-4 text-purple-600" />
-            <span>Average Accuracy</span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-purple-600">
-            {avgScore}%
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <div className="text-xs font-semibold text-slate-500 flex items-center space-x-1.5">
-            <Award className="w-4 h-4 text-amber-500" />
-            <span>Highest Score</span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-amber-600">
-            {bestScore}%
-          </div>
+        <div className="flex items-center space-x-3">
+          <Link
+            to="/test-series"
+            className="px-5 py-3 bg-white text-blue-900 hover:bg-blue-50 font-extrabold text-xs sm:text-sm rounded-xl shadow-lg transition"
+          >
+            Explore More Tests →
+          </Link>
         </div>
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="flex items-center space-x-2 border-b border-slate-200 pb-2">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <FileCheck className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-xs text-slate-500 font-semibold block">Unlocked Tests</span>
+            <span className="text-xl sm:text-2xl font-extrabold text-slate-900">
+              {purchasedSeries.length + purchasedModels.length}
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+            <Clock className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-xs text-slate-500 font-semibold block">Tests Taken</span>
+            <span className="text-xl sm:text-2xl font-extrabold text-slate-900">
+              {totalAttemptsCount}
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <Award className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-xs text-slate-500 font-semibold block">Avg. Accuracy</span>
+            <span className="text-xl sm:text-2xl font-extrabold text-slate-900">
+              {avgScore}%
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <BookOpen className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-xs text-slate-500 font-semibold block">Study Notes</span>
+            <span className="text-xl sm:text-2xl font-extrabold text-slate-900">
+              {materials.length + nonPharma.length}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs Header */}
+      <div className="flex items-center space-x-2 border-b border-slate-200 pb-3 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab('tests')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center space-x-2 ${
+          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'tests'
               ? 'bg-blue-600 text-white shadow'
               : 'text-slate-600 hover:bg-slate-100'
@@ -186,8 +228,20 @@ const Dashboard = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('models')}
+          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center space-x-2 whitespace-nowrap ${
+            activeTab === 'models'
+              ? 'bg-blue-600 text-white shadow'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Zap className="w-4 h-4" />
+          <span>Model Papers ({purchasedModels.length})</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('attempts')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center space-x-2 ${
+          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'attempts'
               ? 'bg-blue-600 text-white shadow'
               : 'text-slate-600 hover:bg-slate-100'
@@ -199,7 +253,7 @@ const Dashboard = () => {
 
         <button
           onClick={() => setActiveTab('materials')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center space-x-2 ${
+          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'materials'
               ? 'bg-blue-600 text-white shadow'
               : 'text-slate-600 hover:bg-slate-100'
@@ -208,12 +262,30 @@ const Dashboard = () => {
           <Download className="w-4 h-4" />
           <span>My Study Notes ({materials.length})</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab('nonpharma')}
+          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center space-x-2 whitespace-nowrap ${
+            activeTab === 'nonpharma'
+              ? 'bg-blue-600 text-white shadow'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>Non-Pharma ({nonPharma.length})</span>
+        </button>
       </div>
 
       {/* Tab 1: My Purchased Test Series */}
       {activeTab === 'tests' && (
         <div className="space-y-6">
-          {purchasedSeries.length === 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <CardSkeleton key={i} />
+              ))}
+            </div>
+          ) : purchasedSeries.length === 0 ? (
             <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-4 shadow-sm">
               <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
                 <BookOpen className="w-8 h-8" />
@@ -228,7 +300,7 @@ const Dashboard = () => {
                 to="/test-series"
                 className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow transition"
               >
-                Browse Model Papers
+                Browse Test Series
               </Link>
             </div>
           ) : (
@@ -276,10 +348,84 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Tab 2: Test Attempt History */}
+      {/* Tab 2: Single Model Papers */}
+      {activeTab === 'models' && (
+        <div className="space-y-6">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <CardSkeleton key={i} />
+              ))}
+            </div>
+          ) : purchasedModels.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-4 shadow-sm">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
+                <Zap className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">No Model Papers Enrolled Yet</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Access individual high-yield pharmacist CBT model papers designed for recruitment exams.
+              </p>
+              <Link
+                to="/model-papers"
+                className="inline-block px-6 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl shadow hover:bg-blue-700 transition"
+              >
+                Browse Model Papers
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {purchasedModels.map(model => (
+                <div
+                  key={model._id}
+                  className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-5"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase bg-blue-50 text-blue-700">
+                        {model.examType}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800">
+                        ✓ Enrolled
+                      </span>
+                    </div>
+
+                    <h3 className="font-extrabold text-slate-900 text-base leading-snug">
+                      {model.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 line-clamp-2">
+                      {model.description || 'Full syllabus official practice model paper with negative marking.'}
+                    </p>
+
+                    <div className="flex items-center space-x-3 text-xs text-slate-600 pt-2 border-t border-slate-100">
+                      <span>⏱️ {model.durationMinutes || 100} Mins</span>
+                      <span>📝 {model.totalQuestions || 100} MCQs</span>
+                      <span>-0.25 Marking</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100">
+                    <Link
+                      to={model.testPaperId ? `/attempt/${model.testPaperId._id || model.testPaperId}` : '#'}
+                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center space-x-2 transition cursor-pointer"
+                    >
+                      <Play className="w-4 h-4 fill-white" />
+                      <span>Take Online CBT Exam</span>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 3: Test Attempt History */}
       {activeTab === 'attempts' && (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-          {attempts.length === 0 ? (
+          {loading ? (
+            <TableSkeleton rows={5} />
+          ) : attempts.length === 0 ? (
             <div className="p-12 text-center text-slate-500 space-y-2">
               <Clock className="w-10 h-10 text-slate-300 mx-auto" />
               <p className="font-semibold text-sm">No test attempts recorded yet.</p>
@@ -347,33 +493,143 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Tab 3: Study Notes & PDFs */}
+      {/* Tab 4: Study Notes & PDFs */}
       {activeTab === 'materials' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {materials.map(mat => (
-            <div
-              key={mat._id}
-              className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex items-center justify-between gap-4"
-            >
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                  {mat.category}
-                </span>
-                <h4 className="font-bold text-slate-900 text-sm leading-snug">{mat.title}</h4>
-                <p className="text-xs text-slate-500 line-clamp-1">{mat.description}</p>
-              </div>
-
-              <a
-                href={mat.fileUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center space-x-1.5 flex-shrink-0"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>PDF</span>
-              </a>
+        <div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <CardSkeleton key={i} />
+              ))}
             </div>
-          ))}
+          ) : materials.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-4 shadow-sm">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
+                <BookOpen className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">No Study Notes Enrolled Yet</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Explore comprehensive B.Pharm semester notes, D.Pharm year guides, and quick revision pharmacist PDFs.
+              </p>
+              <Link
+                to="/materials"
+                className="inline-block px-6 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl shadow hover:bg-blue-700 transition"
+              >
+                Browse Study Notes
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {materials.map(mat => (
+                <div
+                  key={mat._id}
+                  className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex items-center justify-between gap-4"
+                >
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                      {mat.category}
+                    </span>
+                    <h4 className="font-bold text-slate-900 text-sm leading-snug">{mat.title}</h4>
+                    <p className="text-xs text-slate-500 line-clamp-1">{mat.description}</p>
+                  </div>
+
+                  {mat.fileUrl ? (
+                    <a
+                      href={mat.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center space-x-1.5 flex-shrink-0"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>PDF</span>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-slate-400 font-semibold">Available</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 5: Non-Pharma Resources */}
+      {activeTab === 'nonpharma' && (
+        <div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <CardSkeleton key={i} />
+              ))}
+            </div>
+          ) : nonPharma.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-4 shadow-sm">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
+                <Layers className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">No Non-Pharma Resources Enrolled</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Master Maths, Reasoning, Gujarati Grammar, and Computer Awareness for pharmacist recruitment exams.
+              </p>
+              <Link
+                to="/non-pharma"
+                className="inline-block px-6 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl shadow hover:bg-blue-700 transition"
+              >
+                Browse Non-Pharma Hub
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {nonPharma.map(item => (
+                <div
+                  key={item._id}
+                  className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-indigo-50 text-indigo-700">
+                        {item.section}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800">
+                        ✓ Enrolled
+                      </span>
+                    </div>
+
+                    <h4 className="font-bold text-slate-900 text-base leading-snug">{item.title}</h4>
+                    {item.topic && (
+                      <p className="text-xs text-slate-500 font-medium">Topic: {item.topic}</p>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100">
+                    {item.contentType === 'cbt' && item.testPaperId ? (
+                      <Link
+                        to={`/attempt/${item.testPaperId._id || item.testPaperId}`}
+                        className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center space-x-1.5"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-white" />
+                        <span>Start CBT Drill</span>
+                      </Link>
+                    ) : item.pdfUrl ? (
+                      <a
+                        href={item.pdfUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center space-x-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download PDF Notes</span>
+                      </a>
+                    ) : (
+                      <span className="text-xs text-slate-400 font-semibold block text-center">
+                        Resource Ready
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

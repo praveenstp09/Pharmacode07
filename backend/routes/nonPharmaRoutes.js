@@ -5,12 +5,12 @@ import {
   updateNonPharmaResource,
   deleteNonPharmaResource,
 } from '../controllers/nonPharmaController.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, adminOnly, optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Public route
-router.get('/', getNonPharmaResources);
+// Public route (with optional authentication)
+router.get('/', optionalAuth, getNonPharmaResources);
 
 // Admin-only routes
 router.post('/', protect, adminOnly, createNonPharmaResource);

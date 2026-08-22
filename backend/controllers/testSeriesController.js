@@ -1,6 +1,7 @@
 import TestSeries from '../models/TestSeries.js';
 import TestPaper from '../models/TestPaper.js';
 import FolderItem from '../models/FolderItem.js';
+import SingleModelPaper from '../models/SingleModelPaper.js';
 import User from '../models/User.js';
 import Purchase from '../models/Purchase.js';
 
@@ -167,7 +168,7 @@ export const getTestPaperForAttempt = async (req, res) => {
 
     // Check if this paper is attached to a FolderItem with isFreeDemo
     const folderItem = await FolderItem.findOne({ testPaperId: paper._id });
-    const isFreeDemo = folderItem?.isFreeDemo || paper.paperNumber === 1;
+    const isFreeDemo = folderItem?.isFreeDemo || false;
 
     let hasAccess = isAdmin || isFreeDemo;
 
@@ -190,13 +191,27 @@ export const getTestPaperForAttempt = async (req, res) => {
 
     // Check if it's a single model paper or non-pharma paper
     if (!hasAccess && paper.parentType === 'single_model') {
-      const purchase = await Purchase.findOne({
-        userId: user._id,
-        itemType: 'SingleModelPaper',
-        itemId: paper.parentId,
-        isActive: true,
+      const singleModel = await SingleModelPaper.findOne({
+        $or: [{ testPaperId: paper._id }, { _id: paper.parentId }],
       });
-      if (purchase) hasAccess = true;
+
+      if (singleModel) {
+        if (singleModel.isFree) {
+          hasAccess = true;
+        } else {
+          const isPurchased = user.purchasedSingleModels?.some(
+            id => id.toString() === singleModel._id.toString()
+          );
+          const purchase = await Purchase.findOne({
+            userId: user._id,
+            itemType: 'SingleModelPaper',
+            itemId: singleModel._id,
+            expiresAt: { $gt: new Date() },
+            isActive: true,
+          });
+          if (isPurchased || purchase) hasAccess = true;
+        }
+      }
     }
 
     if (!hasAccess && paper.parentType === 'non_pharma') {
@@ -249,29 +264,36 @@ export const getTestPaperForAttempt = async (req, res) => {
 export const getPracticeMCQs = async (req, res) => {
   try {
     const { subject, limit = 20 } = req.query;
+    const sampleLimit = Math.min(Math.max(1, parseInt(limit) || 20), 100);
 
-    let matchQuery = { published: true };
-    const papers = await TestPaper.find(matchQuery);
+    const pipeline = [
+      { $match: { published: true } },
+      { $unwind: '$questions' },
+    ];
 
-    let allQuestions = [];
-    papers.forEach(p => {
-      p.questions.forEach(q => {
-        if (!subject || subject === 'All' || q.subject.toLowerCase() === subject.toLowerCase()) {
-          allQuestions.push({
-            _id: q._id,
-            questionText: q.questionText,
-            options: q.options,
-            correctOptionIndex: q.correctOptionIndex,
-            explanation: q.explanation,
-            subject: q.subject,
-            topic: q.topic,
-          });
-        }
+    if (subject && subject !== 'All') {
+      pipeline.push({
+        $match: { 'questions.subject': { $regex: new RegExp(`^${subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
       });
-    });
+    }
 
-    allQuestions.sort(() => 0.5 - Math.random());
-    const selected = allQuestions.slice(0, parseInt(limit));
+    pipeline.push(
+      { $sample: { size: sampleLimit } },
+      {
+        $project: {
+          _id: '$questions._id',
+          questionText: '$questions.questionText',
+          options: '$questions.options',
+          correctOptionIndex: '$questions.correctOptionIndex',
+          explanation: '$questions.explanation',
+          subject: '$questions.subject',
+          topic: '$questions.topic',
+          imageUrl: '$questions.imageUrl',
+        },
+      }
+    );
+
+    const selected = await TestPaper.aggregate(pipeline);
 
     res.json({
       success: true,

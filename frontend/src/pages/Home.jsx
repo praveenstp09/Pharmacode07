@@ -23,13 +23,18 @@ import {
   Send,
 } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
+import CardSkeleton from '../components/common/SkeletonCard';
 
 const Home = () => {
+  const { user } = useAuth();
+  const { addToCart } = useCart();
+  const { showToast } = useToast();
   const [featuredSeries, setFeaturedSeries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openFaq, setOpenFaq] = useState(null);
-  const { addToCart } = useCart();
 
   // Contact Admin Form State
   const [contactForm, setContactForm] = useState({
@@ -49,12 +54,22 @@ const Home = () => {
       if (res.data.success) {
         setContactSuccess(true);
         setContactForm({ name: '', email: '', subject: 'General Inquiry', message: '' });
+        showToast('Message sent! Our support team will get back to you shortly.', 'success');
         setTimeout(() => setContactSuccess(false), 7000);
       }
     } catch (err) {
-      alert('Failed to send message: ' + (err.response?.data?.message || err.message));
+      showToast('Failed to send message: ' + (err.response?.data?.message || err.message), 'error');
     } finally {
       setContactSending(false);
+    }
+  };
+
+  const handleAddToCart = (item) => {
+    const res = addToCart(item);
+    if (res?.added) {
+      showToast(`${item.title} added to cart!`, 'success');
+    } else {
+      showToast(res?.message || 'Item is already in cart', 'info');
     }
   };
 
@@ -326,100 +341,123 @@ const Home = () => {
 
         {/* Product Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {featuredSeries.map(item => (
-            <div
-              key={item._id}
-              className="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group"
-            >
-              {/* Card Image / Badge */}
-              <div className="relative h-48 overflow-hidden bg-slate-100">
-                <img
-                  src={item.thumbnail}
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
-                <div className="absolute top-3 left-3 bg-blue-600 text-white font-extrabold text-xs px-2.5 py-1 rounded-md uppercase tracking-wider shadow">
-                  {item.examType}
-                </div>
-                {item.price > item.discountPrice && (
-                  <div className="absolute top-3 right-3 bg-emerald-500 text-white font-bold text-xs px-2 py-1 rounded-md shadow">
-                    {Math.round(((item.price - item.discountPrice) / item.price) * 100)}% OFF
+          {loading ? (
+            Array.from({ length: 3 }).map((_, idx) => (
+              <CardSkeleton key={idx} />
+            ))
+          ) : featuredSeries.map(item => {
+            const isPurchased =
+              user?.role === 'admin' ||
+              (user?.purchasedTests || []).some(
+                t => (t?._id || t)?.toString() === item._id?.toString()
+              );
+
+            return (
+              <div
+                key={item._id}
+                className="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group"
+              >
+                {/* Card Image / Badge */}
+                <div className="relative h-48 overflow-hidden bg-slate-100">
+                  <img
+                    src={item.thumbnail}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+                  <div className="absolute top-3 left-3 bg-blue-600 text-white font-extrabold text-xs px-2.5 py-1 rounded-md uppercase tracking-wider shadow">
+                    {item.examType}
                   </div>
-                )}
-                <div className="absolute bottom-3 left-3 right-3 text-white text-xs font-semibold flex items-center justify-between">
-                  <span className="flex items-center space-x-1">
-                    <FileCheck className="w-3.5 h-3.5 text-blue-300" />
-                    <span>{item.totalTests} Full Tests</span>
-                  </span>
-                  <span className="flex items-center space-x-1">
-                    <BookOpen className="w-3.5 h-3.5 text-amber-300" />
-                    <span>{item.totalQuestions} MCQs</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Card Body */}
-              <div className="p-5 sm:p-6 flex-grow flex flex-col justify-between space-y-4">
-                <div className="space-y-2">
-                  <h3 className="font-bold text-slate-900 text-lg leading-snug group-hover:text-blue-600 transition">
-                    <Link to={`/test-series/${item.slug}`}>{item.title}</Link>
-                  </h3>
-                  <p className="text-slate-600 text-xs sm:text-sm line-clamp-2 leading-relaxed">
-                    {item.description}
-                  </p>
-                </div>
-
-                {/* Highlights */}
-                {item.highlights && item.highlights.length > 0 && (
-                  <div className="space-y-1.5 py-2 border-t border-b border-slate-100 text-xs text-slate-600">
-                    {item.highlights.slice(0, 3).map((h, i) => (
-                      <div key={i} className="flex items-start space-x-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 mt-0.5 flex-shrink-0" />
-                        <span className="truncate">{h}</span>
-                      </div>
-                    ))}
+                  {item.price > item.discountPrice && (
+                    <div className="absolute top-3 right-3 bg-emerald-500 text-white font-bold text-xs px-2 py-1 rounded-md shadow">
+                      {Math.round(((item.price - item.discountPrice) / item.price) * 100)}% OFF
+                    </div>
+                  )}
+                  <div className="absolute bottom-3 left-3 right-3 text-white text-xs font-semibold flex items-center justify-between">
+                    <span className="flex items-center space-x-1">
+                      <FileCheck className="w-3.5 h-3.5 text-blue-300" />
+                      <span>{item.totalTests} Full Tests</span>
+                    </span>
+                    <span className="flex items-center space-x-1">
+                      <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+                      <span>{item.totalQuestions} MCQs</span>
+                    </span>
                   </div>
-                )}
+                </div>
 
-                {/* Pricing & CTA */}
-                <div className="pt-2 flex items-center justify-between">
-                  <div>
-                    {item.isFree ? (
-                      <span className="text-xl font-extrabold text-emerald-600">FREE</span>
-                    ) : (
-                      <div className="flex items-baseline space-x-2">
-                        <span className="text-2xl font-extrabold text-slate-900">
-                          ₹{item.discountPrice}
-                        </span>
-                        {item.price > item.discountPrice && (
-                          <span className="text-xs text-slate-400 line-through">
-                            ₹{item.price}
+                {/* Card Body */}
+                <div className="p-5 sm:p-6 flex-grow flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="font-bold text-slate-900 text-lg leading-snug group-hover:text-blue-600 transition">
+                      <Link to={`/test-series/${item.slug}`}>{item.title}</Link>
+                    </h3>
+                    <p className="text-slate-600 text-xs sm:text-sm line-clamp-2 leading-relaxed">
+                      {item.description}
+                    </p>
+                  </div>
+
+                  {/* Highlights */}
+                  {item.highlights && item.highlights.length > 0 && (
+                    <div className="space-y-1.5 py-2 border-t border-b border-slate-100 text-xs text-slate-600">
+                      {item.highlights.slice(0, 3).map((h, i) => (
+                        <div key={i} className="flex items-start space-x-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                          <span className="truncate">{h}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Pricing & CTA */}
+                  <div className="pt-2 flex items-center justify-between">
+                    <div>
+                      {item.isFree ? (
+                        <span className="text-xl font-extrabold text-emerald-600">FREE</span>
+                      ) : (
+                        <div className="flex items-baseline space-x-2">
+                          <span className="text-2xl font-extrabold text-slate-900">
+                            ₹{item.discountPrice}
                           </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                          {item.price > item.discountPrice && (
+                            <span className="text-xs text-slate-400 line-through">
+                              ₹{item.price}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => addToCart(item)}
-                      className="p-2.5 rounded-xl border border-slate-200 hover:border-blue-600 hover:text-blue-600 text-slate-700 transition"
-                      title="Add to Cart"
-                    >
-                      <ShoppingCart className="w-4 h-4" />
-                    </button>
-                    <Link
-                      to={`/test-series/${item.slug}`}
-                      className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow transition"
-                    >
-                      {item.isFree ? 'Start Test' : 'Buy Now'}
-                    </Link>
+                    <div className="flex items-center space-x-2">
+                      {isPurchased ? (
+                        <Link
+                          to={`/test-series/${item.slug}`}
+                          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow transition"
+                        >
+                          Enrolled (Start Test)
+                        </Link>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleAddToCart(item)}
+                            className="p-2.5 rounded-xl border border-slate-200 hover:border-blue-600 hover:text-blue-600 text-slate-700 transition cursor-pointer"
+                            title="Add to Cart"
+                          >
+                            <ShoppingCart className="w-4 h-4" />
+                          </button>
+                          <Link
+                            to={`/test-series/${item.slug}`}
+                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow transition"
+                          >
+                            {item.isFree ? 'Start Test' : 'Buy Now'}
+                          </Link>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -607,8 +645,8 @@ const Home = () => {
               <Mail className="w-5 h-5 text-blue-600 flex-shrink-0" />
               <div className="text-xs">
                 <span className="font-bold text-slate-700 block">Official Support Email</span>
-                <a href="mailto:royaldcx07031999@gmail.com" className="font-extrabold text-blue-600 hover:underline">
-                  royaldcx07031999@gmail.com
+                <a href="mailto:pharmacode07exam@gmail.com" className="font-extrabold text-blue-600 hover:underline">
+                  pharmacode07exam@gmail.com
                 </a>
               </div>
             </div>

@@ -21,7 +21,7 @@ const couponSchema = new mongoose.Schema(
     },
     expiryDate: {
       type: Date,
-      required: true,
+      default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
     minOrderValue: {
       type: Number,

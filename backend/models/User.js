@@ -46,6 +46,18 @@ const userSchema = new mongoose.Schema(
         ref: 'StudyMaterial',
       },
     ],
+    purchasedSingleModels: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'SingleModelPaper',
+      },
+    ],
+    purchasedNonPharma: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'NonPharmaResource',
+      },
+    ],
     resetPasswordToken: String,
     resetPasswordExpires: Date,
   },

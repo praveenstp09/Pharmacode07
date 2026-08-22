@@ -33,17 +33,38 @@ connectDB().then(() => {
 
 const app = express();
 
-// Enable Cross-Origin Resource Sharing for Separate Frontend Site
+// Enable Cross-Origin Resource Sharing
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'https://pharmacode07.onrender.com',
+  'https://pharmacode-frontend.onrender.com',
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: '*',
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.some(o => origin.startsWith(o)) || process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-razorpay-signature'],
   })
 );
 
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));

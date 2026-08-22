@@ -1,6 +1,5 @@
 import TestAttempt from '../models/TestAttempt.js';
 import TestPaper from '../models/TestPaper.js';
-import TestSeries from '../models/TestSeries.js';
 
 // @desc    Submit a test attempt and calculate score
 // @route   POST /api/attempts/submit
@@ -62,12 +61,14 @@ export const submitAttempt = async (req, res) => {
 
     // Score can't be negative if total is 0, but can be negative if rules allow. Let's keep precise 2 decimals:
     score = Math.round(score * 100) / 100;
-    const totalPossibleMarks = paper.totalMarks || totalQuestions * positiveMark;
-    const percentage = Math.max(0, Math.round(((score / totalPossibleMarks) * 100) * 100) / 100);
+    const totalPossibleMarks = paper.totalMarks || totalQuestions * positiveMark || 1;
+    const percentage = totalPossibleMarks > 0 
+      ? Math.max(0, Math.round(((score / totalPossibleMarks) * 100) * 100) / 100)
+      : 0;
 
     const attempt = await TestAttempt.create({
       userId: req.user.id,
-      testSeriesId: paper.testSeriesId,
+      testSeriesId: paper.testSeriesId || null,
       testPaperId: paper._id,
       score,
       totalMarks: totalPossibleMarks,
@@ -136,6 +137,12 @@ export const getAttemptById = async (req, res) => {
     }
 
     const paper = attempt.testPaperId;
+    if (!paper) {
+      return res.status(404).json({
+        success: false,
+        message: 'The test paper associated with this attempt has been deleted or is no longer available.',
+      });
+    }
 
     // Combine questions with student responses & explanations
     const detailedQuestions = paper.questions.map((q, idx) => {

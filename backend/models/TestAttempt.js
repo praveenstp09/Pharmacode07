@@ -11,7 +11,8 @@ const testAttemptSchema = new mongoose.Schema(
     testSeriesId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'TestSeries',
-      required: true,
+      required: false,
+      default: null,
       index: true,
     },
     testPaperId: {
