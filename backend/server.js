@@ -44,6 +44,9 @@ connectDB().then(() => {
 
 const app = express();
 
+// Trust reverse proxy (Required for Render, Heroku, AWS ELB to handle X-Forwarded-For headers accurately)
+app.set('trust proxy', 1);
+
 // Gzip Compression for high-throughput responses
 app.use(compression());
 

@@ -10,6 +10,30 @@ const escapeHtml = (str) =>
     "'": '&#39;',
   }[c]));
 
+// Helper to create a cloud-resilient SMTP transporter (Forces IPv4 to prevent Render ENETUNREACH errors)
+const createTransporter = (cleanUser, cleanPass) => {
+  const customHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const customPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+  const isPort465 = customPort === 465;
+
+  return nodemailer.createTransport({
+    host: customHost,
+    port: customPort,
+    secure: isPort465, // true for 465, false for 587 (STARTTLS)
+    auth: {
+      user: cleanUser,
+      pass: cleanPass,
+    },
+    family: 4, // CRITICAL FOR RENDER/CLOUD: Forces IPv4 resolution, preventing ENETUNREACH on IPv6
+    connectionTimeout: 12000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    tls: {
+      rejectUnauthorized: false,
+    },
+  });
+};
+
 export const sendStudentQueryNotification = async (contactData) => {
   const { name, email, mobile, subject, message } = contactData;
   const adminEmail = process.env.ADMIN_EMAIL || 'pharmacode07exams@gmail.com';
@@ -17,8 +41,6 @@ export const sendStudentQueryNotification = async (contactData) => {
   // 1. Check if SMTP configuration exists
   const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
   const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 465;
 
   if (!smtpUser || !smtpPass) {
     console.log(`ℹ️ [Email Notifier] New query received from ${name} (${email}). To receive live emails, set SMTP_USER and SMTP_PASS in backend/.env`);
@@ -35,26 +57,7 @@ export const sendStudentQueryNotification = async (contactData) => {
   const safeMessage = escapeHtml(message);
 
   try {
-    const isGmail = cleanUser.includes('@gmail.com');
-    const transporter = nodemailer.createTransport(
-      isGmail
-        ? {
-            service: 'gmail',
-            auth: {
-              user: cleanUser,
-              pass: cleanPass,
-            },
-          }
-        : {
-            host: smtpHost,
-            port: smtpPort,
-            secure: smtpPort === 465,
-            auth: {
-              user: cleanUser,
-              pass: cleanPass,
-            },
-          }
-    );
+    const transporter = createTransporter(cleanUser, cleanPass);
 
     const mailOptions = {
       from: `"PharmaCode07 Support Bot" <${smtpUser}>`,
@@ -120,8 +123,6 @@ export const sendStudentQueryNotification = async (contactData) => {
 export const sendPasswordResetEmail = async ({ toEmail, name, resetUrl }) => {
   const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
   const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 465;
 
   if (!smtpUser || !smtpPass) {
     console.log(`ℹ️ [Email Notifier] Password reset requested for ${toEmail}. Reset URL: ${resetUrl}`);
@@ -132,26 +133,7 @@ export const sendPasswordResetEmail = async ({ toEmail, name, resetUrl }) => {
   const cleanUser = smtpUser ? smtpUser.trim() : '';
 
   try {
-    const isGmail = cleanUser.includes('@gmail.com');
-    const transporter = nodemailer.createTransport(
-      isGmail
-        ? {
-            service: 'gmail',
-            auth: {
-              user: cleanUser,
-              pass: cleanPass,
-            },
-          }
-        : {
-            host: smtpHost,
-            port: smtpPort,
-            secure: smtpPort === 465,
-            auth: {
-              user: cleanUser,
-              pass: cleanPass,
-            },
-          }
-    );
+    const transporter = createTransporter(cleanUser, cleanPass);
 
     const safeName = escapeHtml(name || 'Student');
     const safeResetUrl = encodeURI(resetUrl);
@@ -199,8 +181,6 @@ export const sendPasswordResetEmail = async ({ toEmail, name, resetUrl }) => {
 export const sendVerificationOTPEmail = async ({ toEmail, name, otp }) => {
   const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
   const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 465;
 
   if (!smtpUser || !smtpPass) {
     console.log(`ℹ️ [Email Notifier] Verification OTP for ${toEmail}: ${otp}`);
@@ -211,26 +191,7 @@ export const sendVerificationOTPEmail = async ({ toEmail, name, otp }) => {
   const cleanUser = smtpUser ? smtpUser.trim() : '';
 
   try {
-    const isGmail = cleanUser.includes('@gmail.com');
-    const transporter = nodemailer.createTransport(
-      isGmail
-        ? {
-            service: 'gmail',
-            auth: {
-              user: cleanUser,
-              pass: cleanPass,
-            },
-          }
-        : {
-            host: smtpHost,
-            port: smtpPort,
-            secure: smtpPort === 465,
-            auth: {
-              user: cleanUser,
-              pass: cleanPass,
-            },
-          }
-    );
+    const transporter = createTransporter(cleanUser, cleanPass);
 
     const safeName = escapeHtml(name || 'Student');
 
