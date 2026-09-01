@@ -11,42 +11,52 @@ const escapeHtml = (str) =>
     "'": '&#39;',
   }[c]));
 
-// Universal cloud-resilient mail dispatcher with forced IPv4 resolution and dual-port fallback (465 SSL & 587 STARTTLS)
+// Universal cloud-resilient mail dispatcher with direct IPv4 resolution and dual-port fallback (465 SSL & 587 STARTTLS)
 const sendMailWithFallback = async (cleanUser, cleanPass, mailOptions) => {
   const customPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : null;
-  // If user specified custom port, try that first; otherwise try 465 then 587
   const ports = customPort ? [customPort, 465, 587].filter((v, i, a) => a.indexOf(v) === i) : [465, 587];
   const customHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+
+  // Force pure IPv4 resolution directly to bypass Linux glibc IPv6 ENETUNREACH errors on Render/cloud
+  let resolvedHosts = [customHost];
+  try {
+    const ipv4Addresses = await dns.promises.resolve4(customHost);
+    if (ipv4Addresses && ipv4Addresses.length > 0) {
+      resolvedHosts = [...ipv4Addresses, customHost];
+    }
+  } catch (dnsErr) {
+    console.warn('⚠️ [Email Notifier] DNS resolve4 failed, using default hostname:', dnsErr.message);
+  }
+
   let lastError = null;
 
-  for (const port of ports) {
-    try {
-      const isPort465 = port === 465;
-      const transporter = nodemailer.createTransport({
-        host: customHost,
-        port,
-        secure: isPort465,
-        // Crucial for Render/Linux containers: strictly intercept DNS resolution to force IPv4
-        lookup: (hostname, options, callback) => {
-          dns.lookup(hostname, { family: 4 }, callback);
-        },
-        auth: {
-          user: cleanUser,
-          pass: cleanPass,
-        },
-        connectionTimeout: 12000,
-        greetingTimeout: 8000,
-        socketTimeout: 15000,
-        tls: {
-          rejectUnauthorized: false,
-        },
-      });
+  for (const hostTarget of resolvedHosts) {
+    for (const port of ports) {
+      try {
+        const isPort465 = port === 465;
+        const transporter = nodemailer.createTransport({
+          host: hostTarget, // Connecting directly to pure numeric IPv4 address (e.g., 192.178.158.108)
+          port,
+          secure: isPort465,
+          auth: {
+            user: cleanUser,
+            pass: cleanPass,
+          },
+          connectionTimeout: 12000,
+          greetingTimeout: 8000,
+          socketTimeout: 15000,
+          tls: {
+            servername: customHost, // Ensures SSL/TLS certificate is verified against smtp.gmail.com
+            rejectUnauthorized: false,
+          },
+        });
 
-      const info = await transporter.sendMail(mailOptions);
-      return { sent: true, messageId: info.messageId, port };
-    } catch (err) {
-      console.warn(`⚠️ [Email Notifier] Delivery attempt failed on port ${port} (${err.message}). Trying fallback port...`);
-      lastError = err;
+        const info = await transporter.sendMail(mailOptions);
+        return { sent: true, messageId: info.messageId, port, host: hostTarget };
+      } catch (err) {
+        console.warn(`⚠️ [Email Notifier] Delivery attempt failed on ${hostTarget}:${port} (${err.message}). Trying fallback...`);
+        lastError = err;
+      }
     }
   }
 
