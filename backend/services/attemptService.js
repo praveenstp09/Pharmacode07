@@ -202,12 +202,12 @@ export const fetchUserAttempts = async (userId, queryParams = {}) => {
           parentTitle = folderItem.testSeriesId.title;
           testSeriesSlug = folderItem.testSeriesId.slug;
         }
-        if (folderItem.folderType === 'cbt_mixed') {
+        if (folderItem.folderType === 'model_papers' || folderItem.folderType === 'cbt_mixed') {
           categoryBadge = 'Model Paper';
-        } else if (folderItem.folderType === 'pyq') {
+        } else if (folderItem.folderType === 'previous_year_papers' || folderItem.folderType === 'pyq') {
           categoryBadge = 'Previous Year Paper';
           if (folderItem.year) subBadge = `${folderItem.year}`;
-        } else if (folderItem.folderType === 'subject_wise') {
+        } else if (folderItem.folderType === 'subject_wise_tests' || folderItem.folderType === 'subject_wise') {
           categoryBadge = 'Subject-Wise Test';
           if (folderItem.subjectName) subBadge = folderItem.subjectName;
         }

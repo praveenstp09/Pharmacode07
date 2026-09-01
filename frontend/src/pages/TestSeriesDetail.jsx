@@ -145,15 +145,15 @@ const TestSeriesDetail = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
               <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                 <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 1</span>
-                <span className="font-bold text-sm sm:text-base text-white">{cbtMixedList.length || series.totalTests || 0} Full CBT Mocks</span>
+                <span className="font-bold text-sm sm:text-base text-white">{cbtMixedList.length || series.totalTests || 0} Model Papers</span>
               </div>
               <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                 <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 2</span>
-                <span className="font-bold text-sm sm:text-base text-white">{pyqsList.length} Official PYQs (CBT)</span>
+                <span className="font-bold text-sm sm:text-base text-white">{pyqsList.length} Previous Year Papers</span>
               </div>
               <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                 <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 3</span>
-                <span className="font-bold text-sm sm:text-base text-white">{subjectKeys.length} Subjects (CBT Tests Only)</span>
+                <span className="font-bold text-sm sm:text-base text-white">{subjectKeys.length} Subject-Wise Tests</span>
               </div>
             </div>
           </div>

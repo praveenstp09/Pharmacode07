@@ -12,9 +12,6 @@ let mongod = null;
 
 const connectDB = async () => {
   let uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/pharmacode07';
-  if (uri.startsWith('mongodb+srv://') && !uri.includes('retryWrites=')) {
-    uri = uri.replace(/\?*$/, '') + '?retryWrites=true&w=majority&appName=Cluster0';
-  }
 
   // Handle Mongoose connection events
   mongoose.connection.on('disconnected', () => {
@@ -31,14 +28,15 @@ const connectDB = async () => {
 
   try {
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 15000,
       maxPoolSize: 25,
       minPoolSize: 5,
       socketTimeoutMS: 45000,
-      connectTimeoutMS: 10000,
+      connectTimeoutMS: 15000,
       heartbeatFrequencyMS: 10000,
     });
-    console.log(`✅ MongoDB Connected to: ${conn.connection.host}`);
+    console.log(`✅ MongoDB Connected to: ${conn.connection.host} (Database: ${conn.connection.name})`);
+    return conn;
   } catch (error) {
     console.warn(`⚠️ MongoDB Connection Error (${error.message}). Starting built-in MongoDB engine...`);
     try {

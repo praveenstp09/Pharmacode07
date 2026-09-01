@@ -37,7 +37,7 @@ const AdminTestSeriesTab = ({
   const [packageFolderItems, setPackageFolderItems] = useState([]);
   const [loadingPackageItems, setLoadingPackageItems] = useState(false);
   const [folderForm, setFolderForm] = useState({
-    folderType: 'cbt_mixed',
+    folderType: 'model_papers',
     contentType: 'cbt',
     title: '',
     subjectName: 'Pharmacology',
@@ -389,9 +389,9 @@ const AdminTestSeriesTab = ({
                 onChange={e => setFolderForm({ ...folderForm, folderType: e.target.value, contentType: 'cbt' })}
                 className="w-full mt-1 p-2.5 border rounded-xl font-bold"
               >
-                <option value="cbt_mixed">📝 Folder 1: Model Papers</option>
-                <option value="pyq">📄 Folder 2: Previous Year Papers</option>
-                <option value="subject_wise">📚 Folder 3: Subject-Wise Tests</option>
+                <option value="model_papers">📝 Folder 1: Model Papers</option>
+                <option value="previous_year_papers">📄 Folder 2: Previous Year Papers</option>
+                <option value="subject_wise_tests">📚 Folder 3: Subject-Wise Tests</option>
               </select>
             </div>
             <div>
@@ -403,7 +403,7 @@ const AdminTestSeriesTab = ({
             </div>
           </div>
 
-          {folderForm.folderType === 'subject_wise' && (
+          {(folderForm.folderType === 'subject_wise_tests' || folderForm.folderType === 'subject_wise') && (
             <div>
               <label className="font-bold text-slate-700">Subject Name</label>
               <input
@@ -559,9 +559,9 @@ const AdminTestSeriesTab = ({
             <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
               {packageFolderItems.map(item => {
                 const folderLabel =
-                  item.folderType === 'cbt_mixed'
+                  item.folderType === 'model_papers' || item.folderType === 'cbt_mixed'
                     ? '📝 Model Paper'
-                    : item.folderType === 'pyq'
+                    : item.folderType === 'previous_year_papers' || item.folderType === 'pyq'
                     ? '📄 Previous Year Paper'
                     : '📚 Subject Test';
 
@@ -577,7 +577,7 @@ const AdminTestSeriesTab = ({
                         <span className="px-2 py-0.5 bg-blue-100 text-blue-800 font-extrabold text-[10px] rounded-md">
                           {folderLabel}
                         </span>
-                        {item.folderType === 'subject_wise' && item.subjectName && (
+                        {(item.folderType === 'subject_wise_tests' || item.folderType === 'subject_wise') && item.subjectName && (
                           <span className="px-2 py-0.5 bg-purple-100 text-purple-800 font-extrabold text-[10px] rounded-md border border-purple-200">
                             📚 {item.subjectName}
                           </span>

@@ -204,11 +204,11 @@ export const getSeriesDetailsBySlug = async (slug, currentUser) => {
       latestAttempt: userAttempt,
     };
 
-    if (item.folderType === 'cbt_mixed') {
+    if (item.folderType === 'model_papers' || item.folderType === 'cbt_mixed') {
       folders.cbtMixed.push(formattedItem);
-    } else if (item.folderType === 'pyq') {
+    } else if (item.folderType === 'previous_year_papers' || item.folderType === 'pyq') {
       folders.pyqs.push(formattedItem);
-    } else if (item.folderType === 'subject_wise') {
+    } else if (item.folderType === 'subject_wise_tests' || item.folderType === 'subject_wise') {
       const sub = item.subjectName || 'General';
       if (!folders.subjectWise[sub]) folders.subjectWise[sub] = [];
       folders.subjectWise[sub].push(formattedItem);

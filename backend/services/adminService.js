@@ -408,7 +408,10 @@ export const addFolderItemToSeries = async (seriesId, data) => {
   const neg = negativeMarks !== undefined && negativeMarks !== '' ? Number(negativeMarks) : 0.25;
   const dur = Number(durationMinutes) || 100;
 
-  if ((contentType === 'cbt' || folderType === 'pyq' || folderType === 'subject_wise') && Array.isArray(questions) && questions.length > 0) {
+  const isSubjectWise = folderType === 'subject_wise_tests' || folderType === 'subject_wise';
+  const isPYQ = folderType === 'previous_year_papers' || folderType === 'pyq';
+
+  if ((contentType === 'cbt' || isPYQ || isSubjectWise) && Array.isArray(questions) && questions.length > 0) {
     const paper = await TestPaper.create({
       testSeriesId: series._id,
       title,
@@ -426,7 +429,7 @@ export const addFolderItemToSeries = async (seriesId, data) => {
   const item = await FolderItem.create({
     testSeriesId: series._id,
     folderType,
-    contentType: folderType === 'subject_wise' ? 'cbt' : contentType,
+    contentType: isSubjectWise ? 'cbt' : contentType,
     title,
     subjectName: subjectName || '',
     testPaperId,

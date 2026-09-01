@@ -10,13 +10,22 @@ const folderItemSchema = new mongoose.Schema(
     },
     folderType: {
       type: String,
-      enum: ['cbt_mixed', 'pyq', 'mcq_pdf', 'subject_wise'],
+      enum: [
+        'model_papers',
+        'previous_year_papers',
+        'subject_wise_tests',
+        'cbt_mixed',
+        'pyq',
+        'subject_wise',
+        'mcq_pdf',
+      ],
+      default: 'model_papers',
       required: true,
       index: true,
     },
     subjectName: {
       type: String,
-      default: '', // Used when folderType = 'subject_wise' (e.g. 'Pharmacology')
+      default: '', // Used when folderType is subject_wise_tests / subject_wise (e.g. 'Pharmacology')
       index: true,
     },
     contentType: {
