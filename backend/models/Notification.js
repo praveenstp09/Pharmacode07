@@ -29,5 +29,7 @@ const notificationSchema = new mongoose.Schema(
   }
 );
 
+notificationSchema.index({ createdAt: -1 });
+
 const Notification = mongoose.model('Notification', notificationSchema);
 export default Notification;

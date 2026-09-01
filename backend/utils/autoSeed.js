@@ -8,9 +8,13 @@ import FolderItem from '../models/FolderItem.js';
 import SingleModelPaper from '../models/SingleModelPaper.js';
 import NonPharmaResource from '../models/NonPharmaResource.js';
 
-// Auto-seed if database has 0 test series
+// Auto-seed if database has 0 test series (Development mode only)
 export const autoSeedIfEmpty = async () => {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return;
+    }
+
     const seriesCount = await TestSeries.countDocuments();
     if (seriesCount > 0) {
       // Check if folder items exist, if not seed them

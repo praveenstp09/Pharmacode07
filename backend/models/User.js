@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 const userSchema = new mongoose.Schema(
   {
@@ -8,6 +9,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please provide your full name'],
       trim: true,
+      maxlength: [100, 'Name cannot exceed 100 characters'],
     },
     email: {
       type: String,
@@ -15,7 +17,10 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      index: true,
+      match: [
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/,
+        'Please provide a valid email address',
+      ],
     },
     mobile: {
       type: String,
@@ -26,7 +31,7 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, 'Please provide a password'],
-      minlength: 6,
+      minlength: [6, 'Password must be at least 6 characters'],
       select: false,
     },
     role: {
@@ -58,8 +63,52 @@ const userSchema = new mongoose.Schema(
         ref: 'NonPharmaResource',
       },
     ],
-    resetPasswordToken: String,
-    resetPasswordExpires: Date,
+    resetPasswordToken: {
+      type: String,
+      select: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      select: false,
+    },
+    refreshToken: {
+      type: String,
+      select: false,
+    },
+    refreshTokenExpires: {
+      type: Date,
+      select: false,
+    },
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lockUntil: {
+      type: Date,
+      default: null,
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationOTP: {
+      type: String,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+    },
+    emailVerificationAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    lastOtpSentAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
   },
   {
     timestamps: true,
@@ -67,7 +116,6 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ role: 1, createdAt: -1 });
-userSchema.index({ resetPasswordToken: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
@@ -82,11 +130,32 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Generate JWT token
+// Generate 7-day JWT access token
 userSchema.methods.getSignedJwtToken = function () {
-  return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET || 'pharmacode_secret', {
-    expiresIn: '30d',
+  if (!process.env.JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET environment variable is not defined');
+  }
+  return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET, {
+    expiresIn: '7d',
   });
+};
+
+// Generate 30-day cryptographically secure refresh token
+userSchema.methods.generateRefreshToken = function () {
+  const plainToken = crypto.randomBytes(40).toString('hex');
+  this.refreshToken = crypto.createHash('sha256').update(plainToken).digest('hex');
+  this.refreshTokenExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  return plainToken;
+};
+
+// Generate 6-digit email verification OTP (10 minutes validity)
+userSchema.methods.generateEmailVerificationOTP = function () {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  this.emailVerificationOTP = crypto.createHash('sha256').update(otp).digest('hex');
+  this.emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  this.emailVerificationAttempts = 0;
+  this.lastOtpSentAt = new Date();
+  return otp;
 };
 
 const User = mongoose.model('User', userSchema);

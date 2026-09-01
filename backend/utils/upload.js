@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { v2 as cloudinary } from 'cloudinary';
 import { fileURLToPath } from 'url';
+import { fileTypeFromFile } from 'file-type';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,8 +34,8 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+    const safeExt = path.extname(file.originalname).toLowerCase().replace(/[^a-z0-9.]/g, '');
+    cb(null, `doc-${uniqueSuffix}${safeExt}`);
   },
 });
 
@@ -47,21 +48,44 @@ const fileFilter = (req, file, cb) => {
     'image/png',
     'image/webp',
   ];
-  if (allowedExtensions.includes(ext) || allowedMimeTypes.includes(file.mimetype)) {
+
+  // BOTH extension AND declared MIME type must match
+  if (allowedExtensions.includes(ext) && allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only PDF, JPG, PNG, and WebP files are allowed!'), false);
+    cb(new Error('Invalid file format. Only PDF, JPG, PNG, and WebP files are allowed!'), false);
   }
 };
 
+const maxFileSizeMB = Number(process.env.MAX_UPLOAD_SIZE_MB) || 15;
+
 export const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size
+  limits: { fileSize: maxFileSizeMB * 1024 * 1024 }, // 15MB max file size
   fileFilter,
 });
 
-// Helper function to upload file to Cloudinary with local fallback
+// Helper function to upload file to Cloudinary with local fallback + magic byte verification
 export const uploadToCloudinaryOrLocal = async (file, folder = 'pharmacode_docs') => {
+  const cleanFolder = String(folder).replace(/[^a-zA-Z0-9_-]/g, '') || 'pharmacode_docs';
+
+  // 1. Magic byte verification
+  try {
+    const detectedType = await fileTypeFromFile(file.path);
+    const allowedMime = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+
+    // Note: Some standard plain text/PDFs might have specific headers, allow if matches PDF/image
+    if (detectedType && !allowedMime.includes(detectedType.mime)) {
+      try { fs.unlinkSync(file.path); } catch (e) {}
+      throw new Error(`File content (${detectedType.mime}) does not match allowed file types.`);
+    }
+  } catch (magicErr) {
+    if (magicErr.message.includes('File content')) {
+      throw magicErr;
+    }
+    // If magic byte detection on text-based PDF is inconclusive, proceed with caution
+  }
+
   if (
     process.env.CLOUDINARY_CLOUD_NAME &&
     process.env.CLOUDINARY_API_KEY &&
@@ -73,7 +97,7 @@ export const uploadToCloudinaryOrLocal = async (file, folder = 'pharmacode_docs'
         file.mimetype === 'application/pdf';
 
       const uploadOptions = {
-        folder,
+        folder: cleanFolder,
         resource_type: isPdf ? 'raw' : 'auto',
         type: 'upload',
       };
@@ -81,7 +105,8 @@ export const uploadToCloudinaryOrLocal = async (file, folder = 'pharmacode_docs'
       if (isPdf) {
         const cleanName = path
           .parse(file.originalname)
-          .name.replace(/[^a-zA-Z0-9_-]/g, '_');
+          .name.replace(/[^a-zA-Z0-9_-]/g, '_')
+          .slice(0, 50);
         uploadOptions.public_id = `${cleanName}-${Date.now()}.pdf`;
       }
 
@@ -99,7 +124,7 @@ export const uploadToCloudinaryOrLocal = async (file, folder = 'pharmacode_docs'
         size: file.size,
       };
     } catch (err) {
-      console.error('Cloudinary upload error, falling back to local:', err);
+      console.error('Cloudinary upload error, falling back to local storage:', err.message);
     }
   }
 

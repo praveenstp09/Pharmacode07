@@ -5,9 +5,14 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import helmet from 'helmet';
+import mongoSanitize from 'express-mongo-sanitize';
+import compression from 'compression';
+
 import connectDB from './config/db.js';
 import { autoSeedIfEmpty } from './utils/autoSeed.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { apiGeneralLimiter } from './middleware/rateLimiter.js';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
@@ -23,9 +28,9 @@ import nonPharmaRoutes from './routes/nonPharmaRoutes.js';
 
 dotenv.config();
 
-// Ensure critical environment variables exist in production
-if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  console.error('FATAL ERROR: JWT_SECRET environment variable is required in production.');
+// Ensure critical environment variables exist
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL ERROR: JWT_SECRET environment variable is required.');
   process.exit(1);
 }
 
@@ -39,7 +44,20 @@ connectDB().then(() => {
 
 const app = express();
 
-// Enable Cross-Origin Resource Sharing
+// Gzip Compression for high-throughput responses
+app.use(compression());
+
+// Security Headers with Helmet
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
+
+// Prevent NoSQL Injection attacks by sanitizing request data
+app.use(mongoSanitize());
+
+// Enable Cross-Origin Resource Sharing with strict origin matching
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
@@ -53,11 +71,7 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (
-        allowedOrigins.some(o => origin.startsWith(o)) ||
-        origin.endsWith('.onrender.com') ||
-        process.env.NODE_ENV !== 'production'
-      ) {
+      if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
         return callback(null, true);
       }
       return callback(new Error('Blocked by CORS policy'));
@@ -68,13 +82,18 @@ app.use(
   })
 );
 
+// Payload size limit to protect against Large Payload DoS attacks
 app.use(
   express.json({
+    limit: '2mb',
     verify: (req, res, buf) => {
       req.rawBody = buf;
     },
   })
 );
+
+// Apply General Rate Limiter to all API endpoints
+app.use('/api', apiGeneralLimiter);
 
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));

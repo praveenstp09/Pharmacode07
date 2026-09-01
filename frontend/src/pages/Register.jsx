@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, User, Mail, Phone, Lock, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import VerifyEmailModal from '../components/auth/VerifyEmailModal';
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -15,6 +16,10 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // OTP Verification Modal state
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const { register } = useAuth();
   const { showToast } = useToast();
@@ -40,9 +45,17 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await register(name.trim(), email.trim().toLowerCase(), mobile.trim(), password);
-      showToast('Registration successful! Welcome to PharmaCode07.', 'success');
-      navigate(redirectUrl);
+      const cleanEmail = email.trim().toLowerCase();
+      const res = await register(name.trim(), cleanEmail, mobile.trim(), password);
+
+      if (res && res.requiresVerification) {
+        setRegisteredEmail(cleanEmail);
+        setShowVerifyModal(true);
+        showToast(res.message || 'A 6-digit verification code has been sent to your email.', 'info');
+      } else {
+        showToast('Registration successful! Welcome to PharmaCode07.', 'success');
+        navigate(redirectUrl);
+      }
     } catch (err) {
       const msg = err.response?.data?.message || 'Registration failed. Please try again.';
       setError(msg);
@@ -50,6 +63,12 @@ const Register = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerificationSuccess = () => {
+    setShowVerifyModal(false);
+    showToast('Email verified successfully! Welcome to PharmaCode07.', 'success');
+    navigate(redirectUrl);
   };
 
   return (
@@ -164,6 +183,14 @@ const Register = () => {
           </Link>
         </div>
       </div>
+
+      {/* 6-Digit Email OTP Verification Modal */}
+      <VerifyEmailModal
+        isOpen={showVerifyModal}
+        onClose={() => setShowVerifyModal(false)}
+        email={registeredEmail}
+        onSuccess={handleVerificationSuccess}
+      />
     </div>
   );
 };

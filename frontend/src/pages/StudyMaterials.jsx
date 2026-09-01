@@ -459,10 +459,10 @@ const StudyMaterials = () => {
               📚
             </div>
             <h3 className="text-base font-extrabold text-slate-800">
-              No Documents Uploaded Yet
+              COMING SOON 
             </h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
-              New PDF notes and PYQs for this category will be uploaded shortly by admin.
+              New PDF notes and PYQs for this category will be uploaded shortly.
             </p>
           </div>
         ) : (

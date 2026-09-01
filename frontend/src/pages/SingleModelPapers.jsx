@@ -166,9 +166,13 @@ const SingleModelPapers = () => {
                   </p>
 
                   <div className="flex items-center space-x-3 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                    <span>⏱️ {paper.durationMinutes || 100} Mins</span>
-                    <span>📝 {paper.totalQuestions || 100} MCQs</span>
-                    <span>-0.25 Marking</span>
+                    <span>⏱️ {paper.durationMinutes || paper.testPaperId?.durationMinutes || 100} Mins</span>
+                    <span>📝 {paper.totalQuestions || paper.testPaperId?.totalQuestions || 100} MCQs</span>
+                    {Number(paper.testPaperId?.negativeMarks ?? 0.25) === 0 ? (
+                      <span className="text-emerald-700 font-semibold">No -ve Mark</span>
+                    ) : (
+                      <span>-{paper.testPaperId?.negativeMarks ?? 0.25} Marking</span>
+                    )}
                   </div>
                 </div>
 

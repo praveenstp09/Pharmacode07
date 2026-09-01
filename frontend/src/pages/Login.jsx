@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, Mail, Lock, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import VerifyEmailModal from '../components/auth/VerifyEmailModal';
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -14,6 +15,10 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // OTP Verification Modal state
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
+
   const { login } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -24,9 +29,17 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await login(email.trim().toLowerCase(), password);
-      showToast('Logged in successfully! Welcome back.', 'success');
-      navigate(redirectUrl);
+      const cleanEmail = email.trim().toLowerCase();
+      const res = await login(cleanEmail, password);
+
+      if (res && res.requiresVerification) {
+        setUnverifiedEmail(cleanEmail);
+        setShowVerifyModal(true);
+        showToast(res.message || 'Account pending verification. A fresh 6-digit code has been sent to your email.', 'info');
+      } else {
+        showToast('Logged in successfully! Welcome back.', 'success');
+        navigate(redirectUrl);
+      }
     } catch (err) {
       const msg = err.response?.data?.message || 'Invalid email or password.';
       setError(msg);
@@ -34,6 +47,12 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerificationSuccess = () => {
+    setShowVerifyModal(false);
+    showToast('Email verified successfully! Welcome back.', 'success');
+    navigate(redirectUrl);
   };
 
   return (
@@ -125,14 +144,15 @@ const Login = () => {
             Register Here
           </Link>
         </div>
-
-        {/* Demo Credentials Box */}
-        {/* <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600 space-y-1">
-          <div className="font-bold text-slate-800">Quick Test Credentials:</div>
-          <div>👨‍🎓 Student: <code className="text-blue-600 font-mono">student@gmail.com</code> / <code className="text-slate-800 font-mono">Student@123</code></div>
-          <div>🔑 Admin: <code className="text-indigo-600 font-mono">admin@pharmacode07.com</code> / <code className="text-slate-800 font-mono">Admin@123</code></div>
-        </div> */}
       </div>
+
+      {/* 6-Digit Email OTP Verification Modal */}
+      <VerifyEmailModal
+        isOpen={showVerifyModal}
+        onClose={() => setShowVerifyModal(false)}
+        email={unverifiedEmail}
+        onSuccess={handleVerificationSuccess}
+      />
     </div>
   );
 };

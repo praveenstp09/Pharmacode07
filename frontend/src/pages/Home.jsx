@@ -132,7 +132,7 @@ const Home = () => {
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
                 Master Your Pharmacy Exams with{' '}
                 <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
-                  120 MCQ Model Papers
+                  our Test Series & Model Papers
                 </span>
               </h1>
 
@@ -376,12 +376,19 @@ const Home = () => {
                   <div className="absolute bottom-3 left-3 right-3 text-white text-xs font-semibold flex items-center justify-between">
                     <span className="flex items-center space-x-1">
                       <FileCheck className="w-3.5 h-3.5 text-blue-300" />
-                      <span>{item.totalTests} Full Tests</span>
+                      <span>{item.totalTests || 1} Full Tests</span>
                     </span>
-                    <span className="flex items-center space-x-1">
-                      <BookOpen className="w-3.5 h-3.5 text-amber-300" />
-                      <span>{item.totalQuestions} MCQs</span>
-                    </span>
+                    {item.totalQuestions > 0 ? (
+                      <span className="flex items-center space-x-1">
+                        <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+                        <span>{item.totalQuestions} MCQs</span>
+                      </span>
+                    ) : item.totalPdfs > 0 ? (
+                      <span className="flex items-center space-x-1">
+                        <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+                        <span>{item.totalPdfs} Solved PDFs</span>
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 

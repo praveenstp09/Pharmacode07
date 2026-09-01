@@ -12,30 +12,34 @@ import BackToTop from './components/common/BackToTop';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
-// Core lightweight routes (Eager loaded for instant first paint)
+// Core eager route for instant first contentful paint
 import Home from './pages/Home';
-import TestSeriesMarketplace from './pages/TestSeriesMarketplace';
-import TestSeriesDetail from './pages/TestSeriesDetail';
-import PracticeQuiz from './pages/PracticeQuiz';
-import PYQs from './pages/PYQs';
-import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import Dashboard from './pages/Dashboard';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import { PrivacyPolicy, Terms, RefundPolicy } from './pages/LegalPages';
 
-// Heavy secondary routes (Lazy loaded for fast performance & small bundle)
+// On-demand code-split routes (Loaded on navigation for optimal performance)
+const TestSeriesMarketplace = lazy(() => import('./pages/TestSeriesMarketplace'));
+const TestSeriesDetail = lazy(() => import('./pages/TestSeriesDetail'));
+const PracticeQuiz = lazy(() => import('./pages/PracticeQuiz'));
+const PYQs = lazy(() => import('./pages/PYQs'));
+const Cart = lazy(() => import('./pages/Cart'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const TestAttemptScreen = lazy(() => import('./pages/TestAttemptScreen'));
 const TestResult = lazy(() => import('./pages/TestResult'));
 const StudyMaterials = lazy(() => import('./pages/StudyMaterials'));
 const SingleModelPapers = lazy(() => import('./pages/SingleModelPapers'));
 const NonPharmaHub = lazy(() => import('./pages/NonPharmaHub'));
+
+// Lazy load legal pages from named exports
+const PrivacyPolicy = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.PrivacyPolicy })));
+const Terms = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.Terms })));
+const RefundPolicy = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.RefundPolicy })));
 
 // Smooth Suspense Page Loader
 const PageLoader = () => (
@@ -79,7 +83,7 @@ function App() {
       <AuthProvider>
         <CartProvider>
           <ToastProvider>
-            <Router>
+            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <ScrollToTop />
               <Layout>
                 <Suspense fallback={<PageLoader />}>

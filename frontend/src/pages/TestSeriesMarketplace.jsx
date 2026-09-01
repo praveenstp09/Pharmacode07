@@ -94,7 +94,7 @@ const TestSeriesMarketplace = () => {
           Exam-Oriented Model Papers & Test Series
         </h1>
         <p className="text-slate-300 text-sm sm:text-base max-w-2xl">
-          Prepare with 120 MCQ model papers designed specifically for state & central pharmacist recruitment examinations.
+          Prepare with PYQ (Previous Year Paper) and Model papers designed specifically for state & central pharmacist recruitment examinations.
         </p>
 
         {/* Search Bar */}
@@ -221,12 +221,19 @@ const TestSeriesMarketplace = () => {
                   <div className="absolute bottom-3 left-3 right-3 text-white text-xs font-semibold flex items-center justify-between">
                     <span className="flex items-center space-x-1">
                       <FileCheck className="w-3.5 h-3.5 text-blue-300" />
-                      <span>{item.totalTests} Full Tests</span>
+                      <span>{item.totalTests || 1} Full Tests</span>
                     </span>
-                    <span className="flex items-center space-x-1">
-                      <BookOpen className="w-3.5 h-3.5 text-amber-300" />
-                      <span>{item.totalQuestions} MCQs</span>
-                    </span>
+                    {item.totalQuestions > 0 ? (
+                      <span className="flex items-center space-x-1">
+                        <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+                        <span>{item.totalQuestions} MCQs</span>
+                      </span>
+                    ) : item.totalPdfs > 0 ? (
+                      <span className="flex items-center space-x-1">
+                        <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+                        <span>{item.totalPdfs} Solved PDFs</span>
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
@@ -273,12 +280,12 @@ const TestSeriesMarketplace = () => {
                     </div>
 
                     <div className="flex items-center space-x-2">
-                      {isPurchased ? (
+                      {isPurchased || item.isFree ? (
                         <Link
                           to={`/test-series/${item.slug}`}
                           className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow transition"
                         >
-                          Enrolled (Start Test)
+                          {isPurchased ? 'Enrolled (Start Test)' : 'Start Free Test'}
                         </Link>
                       ) : (
                         <>
@@ -293,7 +300,7 @@ const TestSeriesMarketplace = () => {
                             to={`/test-series/${item.slug}`}
                             className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow transition"
                           >
-                            {item.isFree ? 'Free Test' : 'Buy Now'}
+                            Buy Now
                           </Link>
                         </>
                       )}

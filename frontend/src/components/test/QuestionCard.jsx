@@ -10,10 +10,22 @@ const QuestionCard = ({
   isReview,
   onToggleReview,
   onClearResponse,
+  language = 'en',
+  positiveMarks = 1,
+  negativeMarks = 0.25,
 }) => {
   if (!question) return null;
 
   const optionLabels = ['A', 'B', 'C', 'D'];
+
+  const isHindiMode = language === 'hi' && Boolean(question.questionTextHindi);
+  const displayQuestionText = isHindiMode ? question.questionTextHindi : question.questionText;
+  const displayOptions = isHindiMode && question.optionsHindi && question.optionsHindi.length === 4
+    ? question.optionsHindi
+    : question.options;
+
+  const posMark = question.positiveMarks !== undefined ? question.positiveMarks : positiveMarks;
+  const negMark = question.negativeMarks !== undefined ? question.negativeMarks : negativeMarks;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-7 flex flex-col h-full">
@@ -23,22 +35,21 @@ const QuestionCard = ({
           <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-extrabold rounded-full">
             Question {questionNumber} of {totalQuestions}
           </span>
-          {question.subject && (
-            <span className="flex items-center text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">
-              <Tag className="w-3 h-3 mr-1 text-slate-500" />
-              {question.subject}
+          {isHindiMode && (
+            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[11px] font-bold rounded-md">
+              हिन्दी
             </span>
           )}
         </div>
         <div className="text-xs font-semibold text-slate-500">
-          Marks: <span className="text-emerald-600 font-bold">+1.0</span> | Negative:{' '}
-          <span className="text-rose-600 font-bold">-0.25</span>
+          Marks: <span className="text-emerald-600 font-bold">+{posMark}</span> | Negative:{' '}
+          <span className="text-rose-600 font-bold">-{negMark}</span>
         </div>
       </div>
 
       {/* Question Text */}
       <div className="py-6 text-base sm:text-lg font-medium text-slate-900 leading-relaxed">
-        {question.questionText}
+        {displayQuestionText}
       </div>
 
       {/* Optional image if present */}
@@ -54,7 +65,7 @@ const QuestionCard = ({
 
       {/* 4 MCQ Options */}
       <div className="space-y-3 my-2 flex-grow">
-        {question.options.map((option, idx) => {
+        {displayOptions.map((option, idx) => {
           const isSelected = selectedOption === idx;
           return (
             <button

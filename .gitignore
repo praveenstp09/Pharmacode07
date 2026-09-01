@@ -23,3 +23,9 @@ yarn-error.log*
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Documentation & Local Notes
+DB.md
+db.md
+backend/DB.md
+

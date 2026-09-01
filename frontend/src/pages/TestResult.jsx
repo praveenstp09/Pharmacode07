@@ -19,6 +19,7 @@ const TestResult = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all'); // all, incorrect, correct, unattempted
+  const [reviewLanguage, setReviewLanguage] = useState('en');
 
   useEffect(() => {
     const fetchResult = async () => {
@@ -72,6 +73,8 @@ const TestResult = () => {
     paperId,
     score,
     totalMarks,
+    positiveMarks,
+    negativeMarks,
     correctCount,
     incorrectCount,
     unattemptedCount,
@@ -79,6 +82,9 @@ const TestResult = () => {
     timeSpentSeconds,
     questions,
   } = data;
+
+  const posMark = positiveMarks !== undefined && positiveMarks !== null ? Number(positiveMarks) : 1;
+  const negMark = negativeMarks !== undefined && negativeMarks !== null ? Number(negativeMarks) : 0.25;
 
   const filteredQuestions = questions.filter(q => {
     if (filter === 'correct') return q.isCorrect;
@@ -124,18 +130,29 @@ const TestResult = () => {
           </div>
         </div>
 
-        {/* Big Metrics Grid */}
+        {/* 4 Performance Metric Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white/10 backdrop-blur-md border border-white/15 p-5 rounded-2xl">
             <div className="text-xs text-slate-300 font-semibold">Net Marks Scored</div>
             <div className="text-3xl sm:text-4xl font-extrabold text-white mt-1">
-              {score} <span className="text-sm font-normal text-slate-300">/ {totalMarks}</span>
+              {score}
+              <span className="text-sm sm:text-base font-normal text-slate-300 ml-1">
+                / {totalMarks}
+              </span>
             </div>
           </div>
 
           <div className="bg-white/10 backdrop-blur-md border border-white/15 p-5 rounded-2xl">
             <div className="text-xs text-slate-300 font-semibold">Percentage Score</div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-emerald-400 mt-1">
+            <div
+              className={`text-3xl sm:text-4xl font-extrabold mt-1 ${
+                percentage >= 60
+                  ? 'text-emerald-400'
+                  : percentage >= 40
+                  ? 'text-amber-400'
+                  : 'text-rose-400'
+              }`}
+            >
               {percentage}%
             </div>
           </div>
@@ -160,17 +177,22 @@ const TestResult = () => {
 
         {/* Small Breakdown Badges */}
         <div className="grid grid-cols-3 gap-3 text-center text-xs">
-          <div className="bg-emerald-950/60 border border-emerald-700/50 p-3 rounded-xl">
-            <div className="text-xl font-bold text-emerald-400">{correctCount}</div>
-            <div className="text-slate-300">Correct Answers</div>
+          <div className="bg-emerald-950/60 border border-emerald-700/50 p-3.5 rounded-xl space-y-0.5">
+            <div className="text-xl sm:text-2xl font-bold text-emerald-400">{correctCount}</div>
+            <div className="text-slate-200 font-semibold">Correct</div>
+            <div className="text-[11px] text-emerald-300/80 font-medium">+{posMark} {posMark === 1 ? 'mark' : 'marks'}</div>
           </div>
-          <div className="bg-rose-950/60 border border-rose-700/50 p-3 rounded-xl">
-            <div className="text-xl font-bold text-rose-400">{incorrectCount}</div>
-            <div className="text-slate-300">Incorrect (-0.25 ea)</div>
+          <div className="bg-rose-950/60 border border-rose-700/50 p-3.5 rounded-xl space-y-0.5">
+            <div className="text-xl sm:text-2xl font-bold text-rose-400">{incorrectCount}</div>
+            <div className="text-slate-200 font-semibold">Incorrect</div>
+            <div className="text-[11px] text-rose-300/80 font-medium">
+              {negMark > 0 ? `-${negMark} ${negMark === 1 ? 'mark' : 'marks'}` : '0 negative marks'}
+            </div>
           </div>
-          <div className="bg-slate-800/80 border border-slate-700 p-3 rounded-xl">
-            <div className="text-xl font-bold text-slate-300">{unattemptedCount}</div>
-            <div className="text-slate-400">Unattempted</div>
+          <div className="bg-slate-800/80 border border-slate-700 p-3.5 rounded-xl space-y-0.5">
+            <div className="text-xl sm:text-2xl font-bold text-slate-300">{unattemptedCount}</div>
+            <div className="text-slate-300 font-semibold">Unattempted</div>
+            <div className="text-[11px] text-slate-400 font-medium">0 marks</div>
           </div>
         </div>
       </div>
@@ -217,6 +239,34 @@ const TestResult = () => {
               Skipped ({unattemptedCount})
             </button>
           </div>
+
+          {/* Bilingual Language Switcher for Review */}
+          {questions.some(q => Boolean(q.questionTextHindi)) && (
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setReviewLanguage('en')}
+                className={`px-3 py-1 rounded-lg transition ${
+                  reviewLanguage === 'en'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                English
+              </button>
+              <button
+                type="button"
+                onClick={() => setReviewLanguage('hi')}
+                className={`px-3 py-1 rounded-lg transition ${
+                  reviewLanguage === 'hi'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                हिन्दी
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Questions list */}
@@ -224,6 +274,17 @@ const TestResult = () => {
           {filteredQuestions.map(q => {
             const isUserCorrect = q.isCorrect;
             const isUnattempted = q.selectedOption === -1;
+            const isHindi = reviewLanguage === 'hi' && Boolean(q.questionTextHindi);
+            const displayQuestionText = isHindi ? q.questionTextHindi : q.questionText;
+            const displayOptions = isHindi && q.optionsHindi && q.optionsHindi.length === 4
+              ? q.optionsHindi
+              : q.options;
+
+            const displayExplanation = isHindi && q.explanationHindi ? q.explanationHindi : q.explanation;
+            const hasValidExplanation =
+              displayExplanation &&
+              displayExplanation.trim() !== '' &&
+              displayExplanation.trim() !== 'Official answer key reference.';
 
             return (
               <div
@@ -236,9 +297,9 @@ const TestResult = () => {
                     <span className="font-extrabold text-sm text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md">
                       Q.{q.questionNumber}
                     </span>
-                    {q.subject && (
-                      <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                        {q.subject}
+                    {isHindi && (
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[11px] font-bold rounded-md">
+                        हिन्दी
                       </span>
                     )}
                   </div>
@@ -251,12 +312,12 @@ const TestResult = () => {
                     ) : isUserCorrect ? (
                       <span className="inline-flex items-center space-x-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
                         <Check className="w-3.5 h-3.5" />
-                        <span>Correct (+1.0)</span>
+                        <span>Correct (+{posMark})</span>
                       </span>
                     ) : (
                       <span className="inline-flex items-center space-x-1 text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
                         <X className="w-3.5 h-3.5" />
-                        <span>Incorrect (-0.25)</span>
+                        <span>Incorrect {negMark > 0 ? `(-${negMark})` : '(0)'}</span>
                       </span>
                     )}
                   </div>
@@ -264,12 +325,12 @@ const TestResult = () => {
 
                 {/* Question text */}
                 <p className="text-base font-medium text-slate-900 leading-relaxed">
-                  {q.questionText}
+                  {displayQuestionText}
                 </p>
 
                 {/* 4 Options breakdown */}
                 <div className="space-y-2 text-sm">
-                  {q.options.map((opt, optIdx) => {
+                  {displayOptions.map((opt, optIdx) => {
                     const isCorrectOpt = optIdx === q.correctOptionIndex;
                     const isSelectedByUser = optIdx === q.selectedOption;
 
@@ -307,14 +368,14 @@ const TestResult = () => {
                   })}
                 </div>
 
-                {/* Explanation Box */}
-                {q.explanation && (
+                {/* Explanation Box - Only shown when real explanation text is present */}
+                {hasValidExplanation && (
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1.5 text-xs sm:text-sm text-slate-700">
                     <div className="font-bold text-blue-700 flex items-center space-x-1.5">
                       <HelpCircle className="w-4 h-4" />
-                      <span>Detailed Solution & Clinical Explanation:</span>
+                      <span>{isHindi ? 'व्याख्या:' : 'Explanation:'}</span>
                     </div>
-                    <p className="leading-relaxed pl-5">{q.explanation}</p>
+                    <p className="leading-relaxed pl-5">{displayExplanation}</p>
                   </div>
                 )}
               </div>

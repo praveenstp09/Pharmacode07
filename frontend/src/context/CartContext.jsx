@@ -45,10 +45,13 @@ export const CartProvider = ({ children }) => {
 
     const newItem = {
       id,
+      _id: id,
+      itemId: id,
       title: item.title,
       price: item.discountPrice !== undefined && item.discountPrice !== null ? item.discountPrice : (item.price || 0),
       originalPrice: item.price || 0,
       type: resolvedType,
+      itemType: resolvedType,
       thumbnail: item.thumbnail || '/placeholder-test.jpg',
       examType: item.examType || '',
     };

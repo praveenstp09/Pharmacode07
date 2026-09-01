@@ -11,8 +11,14 @@ export const protect = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'pharmacode_secret');
-      req.user = await User.findById(decoded.id).select('-password');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      try {
+        req.user = await User.findById(decoded.id).select('-password');
+      } catch (dbErr) {
+        console.error('Database connection error during auth verification:', dbErr.message);
+        return res.status(503).json({ success: false, message: 'Database connection is temporarily recovering. Please retry in a moment.' });
+      }
       
       if (!req.user) {
         return res.status(401).json({ success: false, message: 'User not found with this token' });
@@ -20,7 +26,7 @@ export const protect = async (req, res, next) => {
 
       next();
     } catch (error) {
-      console.error('Auth verification error:', error);
+      console.error('JWT verification error:', error.message);
       return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
     }
   }
@@ -47,7 +53,7 @@ export const optionalAuth = async (req, res, next) => {
   ) {
     try {
       const token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'pharmacode_secret');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       req.user = await User.findById(decoded.id).select('-password');
     } catch (error) {
       // Ignore invalid token and continue as guest

@@ -10,6 +10,18 @@ const questionSchema = new mongoose.Schema({
     validate: [val => val.length === 4, 'Must provide exactly 4 options'],
     required: true,
   },
+  questionTextHindi: {
+    type: String,
+    default: '',
+  },
+  optionsHindi: {
+    type: [String],
+    default: [],
+  },
+  explanationHindi: {
+    type: String,
+    default: '',
+  },
   correctOptionIndex: {
     type: Number,
     required: true,

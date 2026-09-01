@@ -34,6 +34,7 @@ const singleModelPaperSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'TestPaper',
       default: null,
+      index: true,
     },
     hasPdf: {
       type: Boolean,

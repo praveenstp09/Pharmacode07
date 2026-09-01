@@ -24,6 +24,7 @@ import {
   toggleContactResolved,
   deleteContact,
   addFolderItemToSeries,
+  getFolderItemsForSeries,
   updateFolderItem,
   deleteFolderItem,
   uploadFileEndpoint,
@@ -44,7 +45,8 @@ router.post('/test-series', createTestSeries);
 router.put('/test-series/:id', updateTestSeries);
 router.delete('/test-series/:id', deleteTestSeries);
 
-// Test Series 4-Folder Items
+// Test Series Folder Items
+router.get('/test-series/:seriesId/folders', getFolderItemsForSeries);
 router.post('/test-series/:seriesId/folders', addFolderItemToSeries);
 router.put('/folders/:id', updateFolderItem);
 router.delete('/folders/:id', deleteFolderItem);

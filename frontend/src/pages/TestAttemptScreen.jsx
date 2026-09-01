@@ -23,6 +23,7 @@ const TestAttemptScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [language, setLanguage] = useState('en');
 
   // State arrays for questions
   const [answers, setAnswers] = useState([]);
@@ -166,7 +167,7 @@ const TestAttemptScreen = () => {
     return (
       <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center space-y-4">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <h2 className="text-lg font-bold">Preparing Your 120 MCQ Examination Paper...</h2>
+        <h2 className="text-lg font-bold">Preparing Your CBT Examination Paper...</h2>
         <p className="text-slate-400 text-sm">Please do not refresh the page.</p>
       </div>
     );
@@ -215,8 +216,35 @@ const TestAttemptScreen = () => {
             </div>
           </div>
 
-          {/* Timer & Submit Trigger */}
-          <div className="flex items-center space-x-3 flex-shrink-0">
+            {/* Language Switcher, Timer & Submit Trigger */}
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+              {paper.questions?.some(q => Boolean(q.questionTextHindi || (q.optionsHindi && q.optionsHindi.length > 0))) && (
+                <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs font-bold shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('en')}
+                    className={`px-2.5 sm:px-3 py-1 rounded-lg transition text-[11px] sm:text-xs cursor-pointer ${
+                      language === 'en'
+                        ? 'bg-blue-600 text-white shadow-sm font-extrabold'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    English
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('hi')}
+                    className={`px-2.5 sm:px-3 py-1 rounded-lg transition text-[11px] sm:text-xs cursor-pointer ${
+                      language === 'hi'
+                        ? 'bg-amber-600 text-white shadow-sm font-extrabold'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    हिन्दी
+                  </button>
+                </div>
+              )}
+
             <QuizTimer
               initialMinutes={paper.durationMinutes}
               onTimeUp={handleSubmit}
@@ -225,7 +253,7 @@ const TestAttemptScreen = () => {
             <button
               type="button"
               onClick={() => setShowSubmitModal(true)}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-lg shadow transition"
+              className="px-3.5 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-lg shadow transition"
             >
               Submit Paper
             </button>
@@ -247,6 +275,9 @@ const TestAttemptScreen = () => {
               isReview={reviewFlags[currentIndex]}
               onToggleReview={handleToggleReview}
               onClearResponse={handleClearResponse}
+              language={language}
+              positiveMarks={paper?.positiveMarks ?? 1}
+              negativeMarks={paper?.negativeMarks ?? 0.25}
             />
           </div>
 

@@ -84,8 +84,15 @@ const Checkout = () => {
 
     try {
       // 1. Create order on backend
+      const payloadItems = items.map(item => ({
+        itemId: item.itemId || item.id || item._id,
+        itemType: item.itemType || item.type || 'TestSeries',
+        title: item.title,
+        price: item.price,
+      }));
+
       const orderRes = await api.post('/payments/create-order', {
-        items,
+        items: payloadItems,
         couponCode: coupon?.code || '',
         subtotal,
         discountAmount,

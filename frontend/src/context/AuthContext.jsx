@@ -42,10 +42,15 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
     if (res.data.success) {
-      setToken(res.data.token);
-      setUser(res.data.user);
-      localStorage.setItem('pharmacode_token', res.data.token);
-      localStorage.setItem('pharmacode_user', JSON.stringify(res.data.user));
+      if (res.data.token) {
+        setToken(res.data.token);
+        setUser(res.data.user);
+        localStorage.setItem('pharmacode_token', res.data.token);
+        if (res.data.refreshToken) {
+          localStorage.setItem('pharmacode_refresh_token', res.data.refreshToken);
+        }
+        localStorage.setItem('pharmacode_user', JSON.stringify(res.data.user));
+      }
       return res.data;
     }
   };
@@ -53,18 +58,43 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, mobile, password) => {
     const res = await api.post('/auth/register', { name, email, mobile, password });
     if (res.data.success) {
+      if (res.data.token) {
+        setToken(res.data.token);
+        setUser(res.data.user);
+        localStorage.setItem('pharmacode_token', res.data.token);
+        if (res.data.refreshToken) {
+          localStorage.setItem('pharmacode_refresh_token', res.data.refreshToken);
+        }
+        localStorage.setItem('pharmacode_user', JSON.stringify(res.data.user));
+      }
+      return res.data;
+    }
+  };
+
+  const verifyEmailOTP = async (email, otp) => {
+    const res = await api.post('/auth/verify-email-otp', { email, otp });
+    if (res.data.success) {
       setToken(res.data.token);
       setUser(res.data.user);
       localStorage.setItem('pharmacode_token', res.data.token);
+      if (res.data.refreshToken) {
+        localStorage.setItem('pharmacode_refresh_token', res.data.refreshToken);
+      }
       localStorage.setItem('pharmacode_user', JSON.stringify(res.data.user));
       return res.data;
     }
+  };
+
+  const resendOTP = async (email) => {
+    const res = await api.post('/auth/resend-otp', { email });
+    return res.data;
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('pharmacode_token');
+    localStorage.removeItem('pharmacode_refresh_token');
     localStorage.removeItem('pharmacode_user');
   };
 
@@ -90,6 +120,8 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         register,
+        verifyEmailOTP,
+        resendOTP,
         logout,
         refreshUser,
         isAuthenticated: !!user,

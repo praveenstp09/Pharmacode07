@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
 import dns from 'dns';
 
-// Configure reliable DNS servers for Atlas SRV resolution
+// Force IPv4 lookup first to prevent 20-30s DNS hangs on Windows
 try {
-  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+  dns.setDefaultResultOrder('ipv4first');
 } catch (e) {
-  // ignore if already set
+  // Not supported in older node versions
 }
 
 let mongod = null;
@@ -15,13 +15,28 @@ const connectDB = async () => {
   if (uri.startsWith('mongodb+srv://') && !uri.includes('retryWrites=')) {
     uri = uri.replace(/\?*$/, '') + '?retryWrites=true&w=majority&appName=Cluster0';
   }
-  
+
+  // Handle Mongoose connection events
+  mongoose.connection.on('disconnected', () => {
+    console.warn('⚠️ MongoDB disconnected. Attempting automatic reconnection...');
+  });
+
+  mongoose.connection.on('reconnected', () => {
+    console.log('✅ MongoDB reconnected successfully.');
+  });
+
+  mongoose.connection.on('error', err => {
+    console.error('❌ MongoDB connection error event:', err.message);
+  });
+
   try {
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 15000,
-      maxPoolSize: 50,
-      minPoolSize: 10,
+      serverSelectionTimeoutMS: 10000,
+      maxPoolSize: 25,
+      minPoolSize: 5,
       socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
+      heartbeatFrequencyMS: 10000,
     });
     console.log(`✅ MongoDB Connected to: ${conn.connection.host}`);
   } catch (error) {
