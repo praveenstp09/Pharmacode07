@@ -1,3 +1,8 @@
+import dns from 'dns';
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch (e) {}
+
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';

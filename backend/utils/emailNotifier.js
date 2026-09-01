@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import dns from 'dns';
 
 // Helper to escape HTML characters in email templates
 const escapeHtml = (str) =>
@@ -10,28 +11,46 @@ const escapeHtml = (str) =>
     "'": '&#39;',
   }[c]));
 
-// Helper to create a cloud-resilient SMTP transporter (Forces IPv4 to prevent Render ENETUNREACH errors)
-const createTransporter = (cleanUser, cleanPass) => {
+// Universal cloud-resilient mail dispatcher with forced IPv4 resolution and dual-port fallback (465 SSL & 587 STARTTLS)
+const sendMailWithFallback = async (cleanUser, cleanPass, mailOptions) => {
+  const customPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : null;
+  // If user specified custom port, try that first; otherwise try 465 then 587
+  const ports = customPort ? [customPort, 465, 587].filter((v, i, a) => a.indexOf(v) === i) : [465, 587];
   const customHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const customPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
-  const isPort465 = customPort === 465;
+  let lastError = null;
 
-  return nodemailer.createTransport({
-    host: customHost,
-    port: customPort,
-    secure: isPort465, // true for 465, false for 587 (STARTTLS)
-    auth: {
-      user: cleanUser,
-      pass: cleanPass,
-    },
-    family: 4, // CRITICAL FOR RENDER/CLOUD: Forces IPv4 resolution, preventing ENETUNREACH on IPv6
-    connectionTimeout: 12000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    tls: {
-      rejectUnauthorized: false,
-    },
-  });
+  for (const port of ports) {
+    try {
+      const isPort465 = port === 465;
+      const transporter = nodemailer.createTransport({
+        host: customHost,
+        port,
+        secure: isPort465,
+        // Crucial for Render/Linux containers: strictly intercept DNS resolution to force IPv4
+        lookup: (hostname, options, callback) => {
+          dns.lookup(hostname, { family: 4 }, callback);
+        },
+        auth: {
+          user: cleanUser,
+          pass: cleanPass,
+        },
+        connectionTimeout: 12000,
+        greetingTimeout: 8000,
+        socketTimeout: 15000,
+        tls: {
+          rejectUnauthorized: false,
+        },
+      });
+
+      const info = await transporter.sendMail(mailOptions);
+      return { sent: true, messageId: info.messageId, port };
+    } catch (err) {
+      console.warn(`⚠️ [Email Notifier] Delivery attempt failed on port ${port} (${err.message}). Trying fallback port...`);
+      lastError = err;
+    }
+  }
+
+  throw lastError;
 };
 
 export const sendStudentQueryNotification = async (contactData) => {
@@ -57,10 +76,8 @@ export const sendStudentQueryNotification = async (contactData) => {
   const safeMessage = escapeHtml(message);
 
   try {
-    const transporter = createTransporter(cleanUser, cleanPass);
-
     const mailOptions = {
-      from: `"PharmaCode07 Support Bot" <${smtpUser}>`,
+      from: `"PharmaCode07 Support Bot" <${cleanUser}>`,
       to: adminEmail,
       replyTo: email,
       subject: `🚨 [New Student Doubt/Query] ${subject || 'General Inquiry'} - ${name}`,
@@ -111,9 +128,9 @@ export const sendStudentQueryNotification = async (contactData) => {
       `,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ [Email Notifier] Notification sent to ${adminEmail} (MsgId: ${info.messageId})`);
-    return { sent: true, messageId: info.messageId };
+    const res = await sendMailWithFallback(cleanUser, cleanPass, mailOptions);
+    console.log(`✅ [Email Notifier] Notification sent to ${adminEmail} (MsgId: ${res.messageId}, Port: ${res.port})`);
+    return { sent: true, messageId: res.messageId };
   } catch (error) {
     console.error('⚠️ [Email Notifier] Failed to send email notification:', error.message);
     return { sent: false, error: error.message };
@@ -133,8 +150,6 @@ export const sendPasswordResetEmail = async ({ toEmail, name, resetUrl }) => {
   const cleanUser = smtpUser ? smtpUser.trim() : '';
 
   try {
-    const transporter = createTransporter(cleanUser, cleanPass);
-
     const safeName = escapeHtml(name || 'Student');
     const safeResetUrl = encodeURI(resetUrl);
 
@@ -169,9 +184,9 @@ export const sendPasswordResetEmail = async ({ toEmail, name, resetUrl }) => {
       `,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ [Email Notifier] Password reset sent to ${toEmail} (MsgId: ${info.messageId})`);
-    return { sent: true, messageId: info.messageId };
+    const res = await sendMailWithFallback(cleanUser, cleanPass, mailOptions);
+    console.log(`✅ [Email Notifier] Password reset sent to ${toEmail} (MsgId: ${res.messageId}, Port: ${res.port})`);
+    return { sent: true, messageId: res.messageId };
   } catch (error) {
     console.error('⚠️ [Email Notifier] Failed to send password reset email:', error.message);
     return { sent: false, error: error.message };
@@ -191,8 +206,6 @@ export const sendVerificationOTPEmail = async ({ toEmail, name, otp }) => {
   const cleanUser = smtpUser ? smtpUser.trim() : '';
 
   try {
-    const transporter = createTransporter(cleanUser, cleanPass);
-
     const safeName = escapeHtml(name || 'Student');
 
     const mailOptions = {
@@ -233,9 +246,9 @@ export const sendVerificationOTPEmail = async ({ toEmail, name, otp }) => {
       `,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ [Email Notifier] Verification OTP sent to ${toEmail} (MsgId: ${info.messageId})`);
-    return { sent: true, messageId: info.messageId };
+    const res = await sendMailWithFallback(cleanUser, cleanPass, mailOptions);
+    console.log(`✅ [Email Notifier] Verification OTP sent to ${toEmail} (MsgId: ${res.messageId}, Port: ${res.port})`);
+    return { sent: true, messageId: res.messageId };
   } catch (error) {
     console.error('⚠️ [Email Notifier] Failed to send verification OTP email:', error.message);
     return { sent: false, error: error.message };
