@@ -210,9 +210,9 @@ const TestSeriesMarketplace = () => {
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
-                  <div className="absolute top-3 left-3 bg-blue-600 text-white font-extrabold text-xs px-2.5 py-1 rounded-md uppercase tracking-wider shadow">
+                  {/* <div className="absolute top-3 left-3 bg-blue-600 text-white font-extrabold text-xs px-2.5 py-1 rounded-md uppercase tracking-wider shadow">
                     {item.examType}
-                  </div>
+                  </div> */}
                   {item.price > item.discountPrice && (
                     <div className="absolute top-3 right-3 bg-emerald-500 text-white font-bold text-xs px-2 py-1 rounded-md shadow">
                       {Math.round(((item.price - item.discountPrice) / item.price) * 100)}% OFF
@@ -221,7 +221,7 @@ const TestSeriesMarketplace = () => {
                   <div className="absolute bottom-3 left-3 right-3 text-white text-xs font-semibold flex items-center justify-between">
                     <span className="flex items-center space-x-1">
                       <FileCheck className="w-3.5 h-3.5 text-blue-300" />
-                      <span>{item.totalTests || 1} Full Tests</span>
+                      <span>{item.totalTests || 1} Tests</span>
                     </span>
                     {item.totalQuestions > 0 ? (
                       <span className="flex items-center space-x-1">
