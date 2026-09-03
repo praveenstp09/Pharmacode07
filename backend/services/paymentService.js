@@ -105,13 +105,19 @@ export const initiateCheckoutOrder = async (currentUser, { items, couponCode }) 
 
     let itemPrice = 0;
     if (itemType === 'TestSeries') {
-      itemPrice = dbItem.isFree ? 0 : (dbItem.discountPrice !== undefined ? dbItem.discountPrice : dbItem.price);
+      const p = Number(dbItem.price || 0);
+      const sp = dbItem.discountPrice !== undefined && dbItem.discountPrice !== null ? Number(dbItem.discountPrice) : p;
+      itemPrice = dbItem.isFree ? 0 : Math.min(p || sp, sp);
     } else if (itemType === 'StudyMaterial') {
-      itemPrice = dbItem.isPaid ? (dbItem.discountPrice !== undefined && dbItem.discountPrice !== null ? dbItem.discountPrice : dbItem.price) : 0;
+      const p = Number(dbItem.price || 0);
+      const sp = dbItem.discountPrice !== undefined && dbItem.discountPrice !== null ? Number(dbItem.discountPrice) : p;
+      itemPrice = dbItem.isPaid ? Math.min(p || sp, sp) : 0;
     } else if (itemType === 'SingleModelPaper') {
-      itemPrice = dbItem.isFree ? 0 : (dbItem.discountPrice !== undefined && dbItem.discountPrice !== null ? dbItem.discountPrice : dbItem.price);
+      const p = Number(dbItem.price || 0);
+      const sp = dbItem.discountPrice !== undefined && dbItem.discountPrice !== null ? Number(dbItem.discountPrice) : p;
+      itemPrice = dbItem.isFree ? 0 : Math.min(p || sp, sp);
     } else if (itemType === 'NonPharmaResource') {
-      itemPrice = dbItem.isFree ? 0 : (dbItem.price || 0);
+      itemPrice = dbItem.isFree ? 0 : Number(dbItem.price || 0);
     }
 
     subtotal += itemPrice;
