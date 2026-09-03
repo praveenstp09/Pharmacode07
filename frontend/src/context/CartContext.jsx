@@ -43,13 +43,17 @@ export const CartProvider = ({ children }) => {
       else resolvedType = 'StudyMaterial';
     }
 
+    const basePrice = Number(item.price || 0);
+    const sellingPrice = item.discountPrice !== undefined && item.discountPrice !== null ? Number(item.discountPrice) : basePrice;
+    const finalChargedPrice = (basePrice > 0 && sellingPrice > 0) ? Math.min(basePrice, sellingPrice) : sellingPrice;
+
     const newItem = {
       id,
       _id: id,
       itemId: id,
       title: item.title,
-      price: item.discountPrice !== undefined && item.discountPrice !== null ? item.discountPrice : (item.price || 0),
-      originalPrice: item.price || 0,
+      price: finalChargedPrice,
+      originalPrice: basePrice,
       type: resolvedType,
       itemType: resolvedType,
       thumbnail: item.thumbnail || '/placeholder-test.jpg',

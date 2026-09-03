@@ -2,7 +2,7 @@ import * as materialService from '../services/materialService.js';
 
 export const getMaterials = async (req, res, next) => {
   try {
-    const { data, meta } = await materialService.listMaterials(req.query);
+    const { data, meta } = await materialService.listMaterials(req.query, req.user);
     res.json({
       success: true,
       count: data.length,

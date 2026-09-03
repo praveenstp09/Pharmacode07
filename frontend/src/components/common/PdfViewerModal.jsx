@@ -4,7 +4,7 @@ import api from '../../services/api';
 import { downloadPdfToLocal } from '../../utils/downloadHelper';
 
 const PdfViewerModal = ({ isOpen, onClose, pdfUrl, title, materialId }) => {
-  const [useDirectView, setUseDirectView] = useState(false);
+  const [useDirectView, setUseDirectView] = useState(true);
 
   if (!isOpen || !pdfUrl) return null;
 
@@ -18,9 +18,10 @@ const PdfViewerModal = ({ isOpen, onClose, pdfUrl, title, materialId }) => {
     downloadPdfToLocal(pdfUrl, `${safeTitle}.pdf`);
   };
 
-  // Google Docs viewer vs Direct iframe viewer
-  const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`;
-  const activeViewerUrl = useDirectView ? pdfUrl : googleViewerUrl;
+  // Direct iframe viewer (native browser PDF engine) vs Google Docs fallback
+  const cleanPreviewUrl = pdfUrl.replace('/fl_attachment/', '/');
+  const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(cleanPreviewUrl)}&embedded=true`;
+  const activeViewerUrl = useDirectView ? cleanPreviewUrl : googleViewerUrl;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">

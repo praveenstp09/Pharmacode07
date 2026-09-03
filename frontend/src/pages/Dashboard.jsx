@@ -348,11 +348,11 @@ const Dashboard = () => {
                       className="w-full h-full object-cover group-hover:scale-105 transition"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent" />
-                    <div className="absolute top-3 left-3 bg-blue-600 text-white font-extrabold text-xs px-2.5 py-0.5 rounded uppercase">
+                    {/* <div className="absolute top-3 left-3 bg-blue-600 text-white font-extrabold text-xs px-2.5 py-0.5 rounded uppercase">
                       {item.examType}
-                    </div>
+                    </div> */}
                     <div className="absolute bottom-3 left-3 text-white text-xs font-semibold">
-                      {item.totalTests} Full Tests {item.totalQuestions > 0 ? `• ${item.totalQuestions} Questions` : (item.totalPdfs ? `• ${item.totalPdfs} PDFs` : '')}
+                      {item.totalTests} Tests {item.totalQuestions > 0 ? `• ${item.totalQuestions} Questions` : (item.totalPdfs ? `• ${item.totalPdfs} PDFs` : '')}
                     </div>
                   </div>
 

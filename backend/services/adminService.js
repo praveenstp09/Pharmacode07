@@ -151,14 +151,27 @@ export const fetchAdminStats = async () => {
   return payload;
 };
 
+const validatePricing = (data) => {
+  const isPaid = data.isPaid !== undefined ? Boolean(data.isPaid) : !Boolean(data.isFree);
+  if (isPaid) {
+    const price = Number(data.price || 0);
+    const discountPrice = data.discountPrice !== undefined && data.discountPrice !== null ? Number(data.discountPrice) : price;
+    if (discountPrice > price) {
+      throw new AppError(`Selling price (₹${discountPrice}) cannot be greater than MRP regular price (₹${price})`, 400);
+    }
+  }
+};
+
 // ======================== TEST SERIES CRUD ========================
 export const createSeries = async (data) => {
+  validatePricing(data);
   const series = await TestSeries.create(data);
   await invalidateAdminStatsCache();
   return series;
 };
 
 export const updateSeries = async (id, data) => {
+  validatePricing(data);
   const series = await TestSeries.findByIdAndUpdate(id, data, {
     new: true,
     runValidators: true,
@@ -270,17 +283,24 @@ export const bulkAddQuestionsToPaper = async (id, questions) => {
 
 // ======================== STUDY MATERIALS CRUD ========================
 export const createMaterial = async (data) => {
+  validatePricing(data);
   const material = await StudyMaterial.create(data);
   await invalidateAdminStatsCache();
   return material;
 };
 
 export const updateMaterial = async (id, data) => {
-  const material = await StudyMaterial.findByIdAndUpdate(id, data, {
+  validatePricing(data);
+  const updatePayload = { ...data };
+  if (!updatePayload.fileUrl || typeof updatePayload.fileUrl !== 'string' || !updatePayload.fileUrl.trim()) {
+    delete updatePayload.fileUrl;
+  }
+  const material = await StudyMaterial.findByIdAndUpdate(id, updatePayload, {
     new: true,
     runValidators: true,
   });
   if (!material) throw new AppError('Material not found', 404);
+  await invalidateAdminStatsCache();
   return material;
 };
 

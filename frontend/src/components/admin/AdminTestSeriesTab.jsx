@@ -89,13 +89,21 @@ const AdminTestSeriesTab = ({
     e.preventDefault();
     try {
       const isFreeSeries = Boolean(newSeries.isFree || Number(newSeries.discountPrice) === 0);
+      const mrp = isFreeSeries ? 0 : Number(newSeries.price || 0);
+      const sellingPrice = isFreeSeries ? 0 : Number(newSeries.discountPrice || 0);
+
+      if (!isFreeSeries && sellingPrice > mrp) {
+        showToast(`Selling price (₹${sellingPrice}) cannot be greater than MRP regular price (₹${mrp})`, 'warning');
+        return;
+      }
+
       const slug =
         newSeries.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') +
         '-' + Date.now();
       const res = await api.post('/admin/test-series', {
         ...newSeries,
-        price: isFreeSeries ? 0 : Number(newSeries.price),
-        discountPrice: isFreeSeries ? 0 : Number(newSeries.discountPrice),
+        price: mrp,
+        discountPrice: sellingPrice,
         isFree: isFreeSeries,
         slug,
         highlights: (newSeries.highlights || []).filter(h => h && h.trim() !== ''),

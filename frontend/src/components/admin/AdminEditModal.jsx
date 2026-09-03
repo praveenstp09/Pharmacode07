@@ -8,6 +8,9 @@ const AdminEditModal = ({
   fetchAdminData,
   showToast,
   handleFileUpload,
+  uploadingFile = false,
+  uploadProgress = 0,
+  uploadContext = null,
 }) => {
   if (!editModal.open || !editModal.data) return null;
 
@@ -19,19 +22,60 @@ const AdminEditModal = ({
       let res;
       if (type === 'series') {
         const isFreeSeries = Boolean(data.isFree || Number(data.discountPrice) === 0);
+        const mrp = isFreeSeries ? 0 : Number(data.price || 0);
+        const sellingPrice = isFreeSeries ? 0 : Number(data.discountPrice || 0);
+        if (!isFreeSeries && sellingPrice > mrp) {
+          showToast(`Selling price (₹${sellingPrice}) cannot be greater than MRP regular price (₹${mrp})`, 'warning');
+          return;
+        }
         res = await api.put(`/admin/test-series/${data._id}`, {
           ...data,
-          price: isFreeSeries ? 0 : Number(data.price),
-          discountPrice: isFreeSeries ? 0 : Number(data.discountPrice),
+          price: mrp,
+          discountPrice: sellingPrice,
           isFree: isFreeSeries,
           highlights: (data.highlights || []).filter(h => h && h.trim() !== ''),
         });
       } else if (type === 'material') {
-        res = await api.put(`/admin/materials/${data._id}`, data);
+        const isFreeMat = Boolean(!data.isPaid || Number(data.discountPrice) === 0);
+        const mrp = isFreeMat ? 0 : Number(data.price || 0);
+        const sellingPrice = isFreeMat ? 0 : Number(data.discountPrice || 0);
+        if (!isFreeMat && sellingPrice > mrp) {
+          showToast(`Selling price (₹${sellingPrice}) cannot be greater than MRP regular price (₹${mrp})`, 'warning');
+          return;
+        }
+        const payload = {
+          ...data,
+          isPaid: !isFreeMat,
+          price: mrp,
+          discountPrice: sellingPrice,
+        };
+        if (!payload.fileUrl || typeof payload.fileUrl !== 'string' || !payload.fileUrl.trim()) {
+          delete payload.fileUrl;
+        }
+        res = await api.put(`/admin/materials/${data._id}`, payload);
       } else if (type === 'singleModel') {
-        res = await api.put(`/single-models/${data._id}`, data);
+        const isFreeModel = Boolean(data.isFree || Number(data.discountPrice) === 0);
+        const mrp = isFreeModel ? 0 : Number(data.price || 0);
+        const sellingPrice = isFreeModel ? 0 : Number(data.discountPrice || 0);
+        if (!isFreeModel && sellingPrice > mrp) {
+          showToast(`Selling price (₹${sellingPrice}) cannot be greater than MRP regular price (₹${mrp})`, 'warning');
+          return;
+        }
+        const payload = {
+          ...data,
+          price: mrp,
+          discountPrice: sellingPrice,
+        };
+        if (!payload.pdfUrl || typeof payload.pdfUrl !== 'string' || !payload.pdfUrl.trim()) {
+          delete payload.pdfUrl;
+        }
+        res = await api.put(`/single-models/${data._id}`, payload);
       } else if (type === 'nonPharma') {
-        res = await api.put(`/non-pharma/${data._id}`, data);
+        const payload = { ...data };
+        if (!payload.pdfUrl || typeof payload.pdfUrl !== 'string' || !payload.pdfUrl.trim()) {
+          delete payload.pdfUrl;
+        }
+        res = await api.put(`/non-pharma/${data._id}`, payload);
       }
       if (res && res.data.success) {
         showToast('Item updated successfully!', 'success');
@@ -150,7 +194,8 @@ const AdminEditModal = ({
                     accept="image/*"
                     id="editSeriesThumbnailUpload"
                     className="hidden"
-                    onChange={e => handleFileUpload(e, url => setEditModal({ ...editModal, data: { ...editModal.data, thumbnail: url } }))}
+                    disabled={uploadingFile}
+                    onChange={e => handleFileUpload(e, url => setEditModal({ ...editModal, data: { ...editModal.data, thumbnail: url } }), 'modal')}
                   />
                   <label
                     htmlFor="editSeriesThumbnailUpload"
@@ -263,12 +308,69 @@ const AdminEditModal = ({
                   />
                 </div>
               </div>
+
+              <div className="flex items-center space-x-2 bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+                <input
+                  type="checkbox"
+                  id="edit-mat-free-check"
+                  checked={!editModal.data.isPaid}
+                  onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, isPaid: !e.target.checked } })}
+                  className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
+                />
+                <label htmlFor="edit-mat-free-check" className="text-xs font-bold text-emerald-900 cursor-pointer">
+                  🟢 Free Study Material (₹0 - Unlocked for all students)
+                </label>
+              </div>
               <div>
-                <label className="font-bold text-slate-700">PDF File URL</label>
+                <label className="font-bold text-slate-700">Description</label>
+                <textarea
+                  rows={2}
+                  value={editModal.data.description || ''}
+                  onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, description: e.target.value } })}
+                  className="w-full mt-1 p-2.5 border rounded-xl"
+                />
+              </div>
+              <div className="space-y-2 p-3 bg-slate-50 border rounded-xl">
+                <label className="font-bold text-slate-700 block">PDF File URL</label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    disabled={uploadingFile}
+                    onChange={e => handleFileUpload(e, url => setEditModal({ ...editModal, data: { ...editModal.data, fileUrl: url } }), 'modal')}
+                    className="text-xs cursor-pointer"
+                  />
+                </div>
+
+                {/* Progress bar inside Modal */}
+                {uploadingFile && uploadContext === 'modal' && (
+                  <div className="p-3 bg-blue-50/90 border border-blue-200 rounded-xl space-y-1.5 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between text-xs font-bold text-blue-700">
+                      <div className="flex items-center space-x-2">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+                        </span>
+                        <span>Uploading PDF to Cloudinary...</span>
+                      </div>
+                      <span className="font-extrabold bg-blue-600 text-white px-2 py-0.5 rounded-md text-[10px] shadow-sm">
+                        {uploadProgress}%
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden p-0.5">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 transition-all duration-300 rounded-full"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <input
                   type="text"
                   value={editModal.data.fileUrl || ''}
                   onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, fileUrl: e.target.value } })}
+                  placeholder="Or paste direct PDF URL (leave blank to keep existing)..."
                   className="w-full mt-1 p-2.5 border rounded-xl text-xs font-mono"
                 />
               </div>

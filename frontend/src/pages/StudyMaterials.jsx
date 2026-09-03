@@ -131,6 +131,56 @@ const StudyMaterials = () => {
     }
   };
 
+  const handlePreviewPdf = async (item) => {
+    let targetUrl = item.fileUrl;
+    if (!targetUrl && item._id) {
+      try {
+        const res = await api.get(`/materials/${item._id}`);
+        if (res.data.success && res.data.data?.fileUrl) {
+          targetUrl = res.data.data.fileUrl;
+        }
+      } catch (err) {
+        console.error('Failed to fetch material url:', err);
+      }
+    }
+
+    if (targetUrl) {
+      setPreviewPdf({
+        isOpen: true,
+        url: targetUrl,
+        title: item.title,
+        id: item._id,
+      });
+    } else {
+      showToast('Preview unavailable. Please purchase to unlock this material.', 'info');
+    }
+  };
+
+  const handleDownloadPdf = async (item) => {
+    let targetUrl = item.fileUrl;
+    if (!targetUrl && item._id) {
+      try {
+        const res = await api.get(`/materials/${item._id}`);
+        if (res.data.success && res.data.data?.fileUrl) {
+          targetUrl = res.data.data.fileUrl;
+        }
+      } catch (err) {
+        console.error('Failed to fetch material url:', err);
+      }
+    }
+
+    if (targetUrl) {
+      if (item._id) {
+        api.post(`/materials/${item._id}/track-download`).catch(() => {});
+      }
+      const safeName = (item.title || 'Pharmacode07_Notes').replace(/[^a-zA-Z0-9_-]/g, '_');
+      downloadPdfToLocal(targetUrl, `${safeName}.pdf`);
+      showToast('Download started...', 'success');
+    } else {
+      showToast('Download unavailable. Please purchase to unlock this material.', 'info');
+    }
+  };
+
   const [activeCourse, setActiveCourse] = useState('B.Pharm'); // 'B.Pharm', 'D.Pharm', 'QuickRevision'
   const [selectedSemOrYear, setSelectedSemOrYear] = useState('Semester 1');
   const [selectedSubject, setSelectedSubject] = useState('All');
@@ -467,102 +517,124 @@ const StudyMaterials = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map(item => (
-              <div
-                key={item._id}
-                className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-blue-300 transition flex flex-col justify-between space-y-4 shadow-sm"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase bg-blue-50 text-blue-700">
-                      {item.subject}
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                      {item.materialType === 'chapter_notes' ? 'Notes PDF' : 'PYQ Paper'}
-                    </span>
-                  </div>
+            {filtered.map(item => {
+              const isEnrolled =
+                (user?.purchasedMaterials || []).some(
+                  id => (id?._id || id)?.toString() === item._id?.toString()
+                ) || user?.role === 'admin';
 
-                  <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">
-                    {item.title}
-                  </h3>
+              const basePrice = Number(item.price || 0);
+              const rawSellingPrice =
+                item.discountPrice !== undefined && item.discountPrice !== null
+                  ? Number(item.discountPrice)
+                  : basePrice;
+              const sellingPrice =
+                basePrice > 0 && rawSellingPrice > 0
+                  ? Math.min(basePrice, rawSellingPrice)
+                  : rawSellingPrice;
+              const hasDiscount = item.isPaid && basePrice > sellingPrice && sellingPrice > 0;
+              const discountPercent = hasDiscount
+                ? Math.round(((basePrice - sellingPrice) / basePrice) * 100)
+                : 0;
 
-                  {item.chapter && (
-                    <p className="text-xs text-slate-500 font-semibold">🔖 {item.chapter}</p>
-                  )}
-                  <p className="text-xs text-slate-600 line-clamp-2">{item.description}</p>
-                </div>
+              return (
+                <div
+                  key={item._id}
+                  className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-blue-300 transition flex flex-col justify-between space-y-4 shadow-sm"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase bg-blue-50 text-blue-700 truncate max-w-[160px]">
+                        {item.subject}
+                      </span>
+                      <div className="flex items-center space-x-1.5 flex-shrink-0">
+                        {hasDiscount && (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                            {discountPercent}% OFF
+                          </span>
+                        )}
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                          {item.materialType === 'chapter_notes' ? 'Notes PDF' : 'PYQ Paper'}
+                        </span>
+                      </div>
+                    </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-slate-200/80">
-                  <span className="text-xs text-emerald-600 font-extrabold">
-                    {item.isPaid
-                      ? ((user?.purchasedMaterials || []).some(
-                          id => (id?._id || id)?.toString() === item._id?.toString()
-                        ) || user?.role === 'admin'
-                          ? '✓ Enrolled'
-                          : `₹${item.price}`)
-                      : 'Free Access'}
-                  </span>
+                    <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">
+                      {item.title}
+                    </h3>
 
-                  <div className="flex items-center space-x-2">
-                    {!item.isPaid ||
-                    user?.role === 'admin' ||
-                    (user?.purchasedMaterials || []).some(
-                      id => (id?._id || id)?.toString() === item._id?.toString()
-                    ) ? (
-                      <>
-                        <button
-                          onClick={() =>
-                            setPreviewPdf({
-                              isOpen: true,
-                              url: item.fileUrl,
-                              title: item.title,
-                              id: item._id,
-                            })
-                          }
-                          className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl flex items-center space-x-1 transition cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Preview</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (item._id) {
-                              api.post(`/materials/${item._id}/track-download`).catch(() => {});
-                            }
-                            const safeName = (item.title || 'Pharmacode07_Notes').replace(/[^a-zA-Z0-9_-]/g, '_');
-                            downloadPdfToLocal(item.fileUrl, `${safeName}.pdf`);
-                          }}
-                          className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1 transition shadow cursor-pointer"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          <span>Download</span>
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleAddToCart(item)}
-                          className="p-2 border border-slate-200 hover:border-blue-600 hover:text-blue-600 text-slate-700 rounded-xl transition cursor-pointer"
-                          title="Add to Cart"
-                        >
-                          <ShoppingCart className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            addToCart(item, 'StudyMaterial');
-                            navigate('/checkout');
-                          }}
-                          className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1 transition shadow cursor-pointer"
-                        >
-                          <Lock className="w-3.5 h-3.5" />
-                          <span>Buy Now (₹{item.price})</span>
-                        </button>
-                      </>
+                    {item.chapter && (
+                      <p className="text-xs text-slate-500 font-semibold">🔖 {item.chapter}</p>
                     )}
+                    <p className="text-xs text-slate-600 line-clamp-2">{item.description}</p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-200/80">
+                    <div>
+                      {!item.isPaid ? (
+                        <span className="text-sm sm:text-base font-extrabold text-emerald-600">FREE</span>
+                      ) : isEnrolled ? (
+                        <span className="text-xs font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                          ✓ Enrolled
+                        </span>
+                      ) : (
+                        <div className="flex items-baseline space-x-1.5">
+                          <span className="text-base sm:text-lg font-extrabold text-slate-900">
+                            ₹{sellingPrice}
+                          </span>
+                          {hasDiscount && (
+                            <span className="text-xs text-slate-400 line-through">
+                              ₹{basePrice}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      {!item.isPaid || isEnrolled ? (
+                        <>
+                          <button
+                            onClick={() => handlePreviewPdf(item)}
+                            className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl flex items-center space-x-1 transition cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Preview</span>
+                          </button>
+                          <button
+                            onClick={() => handleDownloadPdf(item)}
+                            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1 transition shadow cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleAddToCart(item)}
+                            className="p-2 border border-slate-200 hover:border-blue-600 hover:text-blue-600 text-slate-700 rounded-xl transition cursor-pointer"
+                            title="Add to Cart"
+                          >
+                            <ShoppingCart className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              addToCart(item, 'StudyMaterial');
+                              navigate('/checkout');
+                            }}
+                            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1 transition shadow cursor-pointer"
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Buy Now (₹{sellingPrice})</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

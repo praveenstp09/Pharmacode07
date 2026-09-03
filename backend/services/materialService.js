@@ -3,7 +3,7 @@ import User from '../models/User.js';
 import AppError from '../utils/AppError.js';
 import { paginateArray } from '../utils/paginate.js';
 
-export const listMaterials = async (queryParams) => {
+export const listMaterials = async (queryParams, currentUser) => {
   const { courseType, semesterOrYear, subject, materialType, category, examType, isPaid, search } = queryParams;
   let query = { published: true };
 
@@ -21,10 +21,22 @@ export const listMaterials = async (queryParams) => {
 
   const materials = await StudyMaterial.find(query).sort({ year: -1, createdAt: -1 });
 
-  // Sanitize: strip fileUrl for paid materials in public list
+  let userPurchasedIds = [];
+  let isAdmin = false;
+
+  if (currentUser) {
+    const user = await User.findById(currentUser.id || currentUser._id);
+    if (user) {
+      isAdmin = user.role === 'admin';
+      userPurchasedIds = (user.purchasedMaterials || []).map(p => (p?._id || p).toString());
+    }
+  }
+
+  // Preserve fileUrl for free materials, admin, or purchased materials
   const sanitized = materials.map(m => {
     const obj = m.toObject();
-    if (obj.isPaid) {
+    const isUnlocked = !obj.isPaid || isAdmin || userPurchasedIds.includes(obj._id.toString());
+    if (!isUnlocked) {
       obj.fileUrl = '';
     }
     return obj;

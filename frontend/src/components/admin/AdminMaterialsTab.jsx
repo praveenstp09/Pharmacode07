@@ -25,6 +25,8 @@ const AdminMaterialsTab = ({
   showToast,
   handleFileUpload,
   uploadingFile,
+  uploadProgress = 0,
+  uploadContext = null,
 }) => {
   const [newMaterial, setNewMaterial] = useState({
     title: '',
@@ -35,6 +37,9 @@ const AdminMaterialsTab = ({
     chapter: '',
     materialType: 'chapter_notes',
     description: '',
+    isFree: false,
+    price: '',
+    discountPrice: '',
     fileUrl: '',
     isCustomExam: false,
     customExamName: '',
@@ -73,8 +78,20 @@ const AdminMaterialsTab = ({
         newMaterial.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') +
         '-' + Date.now();
 
+      const isFreeMat = Boolean(newMaterial.isFree || Number(newMaterial.discountPrice) === 0);
+      const mrp = isFreeMat ? 0 : Number(newMaterial.price || 0);
+      const sellingPrice = isFreeMat ? 0 : Number(newMaterial.discountPrice || 0);
+
+      if (!isFreeMat && sellingPrice > mrp) {
+        showToast(`Selling price (₹${sellingPrice}) cannot be greater than MRP regular price (₹${mrp})`, 'warning');
+        return;
+      }
+
       const res = await api.post('/admin/materials', {
         ...newMaterial,
+        isPaid: !isFreeMat,
+        price: mrp,
+        discountPrice: sellingPrice,
         description: newMaterial.description || newMaterial.title || 'Pharmacy Study Notes and PYQ Paper',
         semesterOrYear: finalSemesterOrYear,
         subject: finalSubject,
@@ -87,6 +104,10 @@ const AdminMaterialsTab = ({
           ...newMaterial,
           title: '',
           chapter: '',
+          description: '',
+          isFree: false,
+          price: '',
+          discountPrice: '',
           fileUrl: '',
           customSubject: '',
           customExamName: '',
@@ -129,7 +150,7 @@ const AdminMaterialsTab = ({
             Upload Notes & PYQs (Course ➔ Semester ➔ Subject ➔ Notes/PYQs)
           </h3>
           <p className="text-xs text-slate-500 mt-1">
-            Select Course ➔ Semester/Year/Exam ➔ Subject ➔ Material Type (Chapter Notes or PYQ Paper) ➔ Upload PDF
+            Select Course ➔ Semester/Year/Exam ➔ Subject ➔ Material Type (Chapter Notes or PYQ Paper) ➔ Set Price / Free ➔ Upload PDF
           </p>
         </div>
 
@@ -289,18 +310,91 @@ const AdminMaterialsTab = ({
             />
           </div>
 
+          <div>
+            <label className="font-bold text-slate-700">Description / Summary (Optional)</label>
+            <textarea
+              rows={2}
+              value={newMaterial.description}
+              onChange={e => setNewMaterial({ ...newMaterial, description: e.target.value })}
+              placeholder="e.g. Comprehensive handwritten chapter notes covering key definitions, mechanisms, and exam questions."
+              className="w-full mt-1 p-2.5 border rounded-xl"
+            />
+          </div>
+
+          {/* Pricing & Free Access */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="font-bold text-slate-700">MRP Price (₹)</label>
+              <input
+                type="number"
+                value={newMaterial.price}
+                onChange={e => setNewMaterial({ ...newMaterial, price: e.target.value })}
+                placeholder="e.g. 99"
+                className="w-full mt-1 p-2.5 border rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="font-bold text-slate-700">Selling Price (₹)</label>
+              <input
+                type="number"
+                value={newMaterial.discountPrice}
+                onChange={e => setNewMaterial({ ...newMaterial, discountPrice: e.target.value })}
+                placeholder="e.g. 39"
+                className="w-full mt-1 p-2.5 border rounded-xl font-bold text-emerald-600"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+            <input
+              type="checkbox"
+              id="material-free-check"
+              checked={newMaterial.isFree || false}
+              onChange={e => setNewMaterial({ ...newMaterial, isFree: e.target.checked })}
+              className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
+            />
+            <label htmlFor="material-free-check" className="text-xs font-bold text-emerald-900 cursor-pointer">
+              🟢 Free Study Material (₹0 - Unlocked for all students)
+            </label>
+          </div>
+
           {/* Upload PDF */}
-          <div className="p-4 bg-slate-50 border rounded-2xl space-y-2">
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
             <label className="font-bold text-slate-700 block">PDF Document (Cloudinary Upload)</label>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <input
                 type="file"
                 accept=".pdf"
-                onChange={e => handleFileUpload(e, url => setNewMaterial({ ...newMaterial, fileUrl: url }))}
-                className="text-xs"
+                disabled={uploadingFile}
+                onChange={e => handleFileUpload(e, url => setNewMaterial({ ...newMaterial, fileUrl: url }), 'create')}
+                className="text-xs cursor-pointer"
               />
-              {uploadingFile && <span className="text-xs text-blue-600 font-bold animate-pulse">Uploading to Cloudinary...</span>}
             </div>
+
+            {/* Real-time Upload Progress Bar */}
+            {uploadingFile && uploadContext === 'create' && (
+              <div className="p-3.5 bg-blue-50/80 border border-blue-200/90 rounded-2xl space-y-2 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between text-xs font-bold text-blue-700">
+                  <div className="flex items-center space-x-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+                    </span>
+                    <span>Uploading document to Cloudinary...</span>
+                  </div>
+                  <span className="font-extrabold bg-blue-600 text-white px-2.5 py-0.5 rounded-full text-[11px] shadow-sm">
+                    {uploadProgress}%
+                  </span>
+                </div>
+                <div className="w-full h-2.5 bg-blue-100 rounded-full overflow-hidden p-0.5 shadow-inner">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 transition-all duration-300 rounded-full"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
             <input
               type="text"
               required
@@ -313,9 +407,12 @@ const AdminMaterialsTab = ({
 
           <button
             type="submit"
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition cursor-pointer"
+            disabled={uploadingFile}
+            className={`px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition cursor-pointer ${
+              uploadingFile ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            Upload Study Material PDF
+            {uploadingFile ? 'Uploading File...' : 'Upload Study Material PDF'}
           </button>
         </form>
       </div>
@@ -350,6 +447,7 @@ const AdminMaterialsTab = ({
                 <th className="p-3">Subject</th>
                 <th className="p-3">Title</th>
                 <th className="p-3">Type</th>
+                <th className="p-3">Price / Access</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -364,6 +462,17 @@ const AdminMaterialsTab = ({
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
                       {m.materialType === 'chapter_notes' ? 'Notes' : 'PYQ'}
                     </span>
+                  </td>
+                  <td className="p-3 font-bold">
+                    {m.isPaid ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-50 text-amber-800 border border-amber-200">
+                        ₹{m.discountPrice || m.price}
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        FREE
+                      </span>
+                    )}
                   </td>
                   <td className="p-3 text-right space-x-2 whitespace-nowrap">
                     <button
@@ -389,7 +498,7 @@ const AdminMaterialsTab = ({
               ))}
               {filteredMaterials.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-6 text-slate-400 italic">
+                  <td colSpan={7} className="text-center py-6 text-slate-400 italic">
                     No study materials match your query.
                   </td>
                 </tr>

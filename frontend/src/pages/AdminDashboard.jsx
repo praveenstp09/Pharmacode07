@@ -36,6 +36,8 @@ const AdminDashboard = () => {
 
   // File Upload State
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadContext, setUploadContext] = useState(null); // 'create' | 'modal'
 
   // Universal Edit Popup Modal State
   const [editModal, setEditModal] = useState({
@@ -109,8 +111,8 @@ const AdminDashboard = () => {
     }
   };
 
-  // Shared file upload handler
-  const handleFileUpload = async (e, setTargetUrl) => {
+  // Shared file upload handler with live progress tracking and context scoping
+  const handleFileUpload = async (e, setTargetUrl, context = 'create') => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -119,19 +121,30 @@ const AdminDashboard = () => {
     formData.append('folder', 'pharmacode_docs');
 
     setUploadingFile(true);
+    setUploadProgress(0);
+    setUploadContext(context);
     try {
       const res = await api.post('/admin/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percent);
+          }
+        },
       });
       if (res.data.success) {
         const url = res.data.data.url;
         setTargetUrl(url);
+        setUploadProgress(100);
         showToast('File uploaded successfully!', 'success');
       }
     } catch (err) {
       showToast('Upload failed: ' + (err.response?.data?.message || err.message), 'error');
     } finally {
       setUploadingFile(false);
+      setUploadProgress(0);
+      setUploadContext(null);
     }
   };
 
@@ -204,6 +217,8 @@ const AdminDashboard = () => {
           showToast={showToast}
           handleFileUpload={handleFileUpload}
           uploadingFile={uploadingFile}
+          uploadProgress={uploadProgress}
+          uploadContext={uploadContext}
         />
       )}
 
@@ -215,6 +230,8 @@ const AdminDashboard = () => {
           showToast={showToast}
           handleFileUpload={handleFileUpload}
           uploadingFile={uploadingFile}
+          uploadProgress={uploadProgress}
+          uploadContext={uploadContext}
         />
       )}
 
@@ -226,6 +243,8 @@ const AdminDashboard = () => {
           showToast={showToast}
           handleFileUpload={handleFileUpload}
           uploadingFile={uploadingFile}
+          uploadProgress={uploadProgress}
+          uploadContext={uploadContext}
         />
       )}
 
@@ -237,6 +256,8 @@ const AdminDashboard = () => {
           showToast={showToast}
           handleFileUpload={handleFileUpload}
           uploadingFile={uploadingFile}
+          uploadProgress={uploadProgress}
+          uploadContext={uploadContext}
         />
       )}
 
@@ -272,6 +293,9 @@ const AdminDashboard = () => {
         fetchAdminData={fetchAdminData}
         showToast={showToast}
         handleFileUpload={handleFileUpload}
+        uploadingFile={uploadingFile}
+        uploadProgress={uploadProgress}
+        uploadContext={uploadContext}
       />
     </div>
   );

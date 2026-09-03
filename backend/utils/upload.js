@@ -100,6 +100,8 @@ export const uploadToCloudinaryOrLocal = async (file, folder = 'pharmacode_docs'
         folder: cleanFolder,
         resource_type: isPdf ? 'raw' : 'auto',
         type: 'upload',
+        access_mode: 'public',
+        overwrite: true,
       };
 
       if (isPdf) {
