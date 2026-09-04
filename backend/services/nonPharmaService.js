@@ -23,6 +23,24 @@ export const listNonPharmaResources = async (queryParams) => {
   return paginateArray(resources, queryParams);
 };
 
+const formatNonPharmaPaperTitle = (section, topic, title) => {
+  const sectionLabels = {
+    reasoning: 'Reasoning Ability',
+    maths: 'Quantitative Aptitude',
+    current_affairs: 'Current Affairs',
+    general_studies_gk: 'General Studies & GK',
+  };
+  const secName = sectionLabels[section] || String(section || '').toUpperCase();
+  const cleanTopic = (topic || '').trim();
+  const cleanTitle = (title || '').trim();
+  if (cleanTopic && cleanTitle) {
+    return `${secName} - ${cleanTopic} (${cleanTitle})`;
+  } else if (cleanTopic) {
+    return `${secName} - ${cleanTopic}`;
+  }
+  return `${secName} - ${cleanTitle}`;
+};
+
 export const createResource = async (data) => {
   const {
     title,
@@ -46,8 +64,9 @@ export const createResource = async (data) => {
   let testPaperId = null;
 
   if (contentType === 'cbt' && Array.isArray(questions) && questions.length > 0) {
+    const formattedTitle = formatNonPharmaPaperTitle(section, topic, title);
     const testPaper = await TestPaper.create({
-      title: `${String(section).toUpperCase()} - ${title}`,
+      title: formattedTitle,
       durationMinutes: durationMinutes || 30,
       totalMarks: totalMarks || questions.length,
       positiveMarks: 1,
@@ -90,6 +109,13 @@ export const updateResource = async (id, updates) => {
   });
   if (!resource) {
     throw new AppError('Resource not found', 404);
+  }
+  if (resource.testPaperId) {
+    const newPaperTitle = formatNonPharmaPaperTitle(resource.section, resource.topic, resource.title);
+    await TestPaper.findByIdAndUpdate(resource.testPaperId, {
+      title: newPaperTitle,
+      durationMinutes: resource.durationMinutes || 30,
+    });
   }
   return resource;
 };

@@ -106,9 +106,16 @@ const TestResult = () => {
             <span className="bg-blue-500/20 text-blue-300 font-bold text-xs px-3 py-1 rounded-full border border-blue-400/30">
               Exam Performance Report
             </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
-              {testPaperTitle}
-            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
+                {testPaperTitle}
+              </h1>
+              {data.topic && (
+                <span className="text-xs font-bold bg-indigo-500/30 text-indigo-200 border border-indigo-400/40 px-3 py-1 rounded-full mt-1">
+                  Topic: {data.topic}
+                </span>
+              )}
+            </div>
             <p className="text-xs sm:text-sm text-slate-400">{testSeriesTitle}</p>
           </div>
 

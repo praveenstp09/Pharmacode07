@@ -2,6 +2,7 @@ import TestSeries from '../models/TestSeries.js';
 import TestPaper from '../models/TestPaper.js';
 import FolderItem from '../models/FolderItem.js';
 import SingleModelPaper from '../models/SingleModelPaper.js';
+import NonPharmaResource from '../models/NonPharmaResource.js';
 import User from '../models/User.js';
 import Purchase from '../models/Purchase.js';
 import TestAttempt from '../models/TestAttempt.js';
@@ -315,6 +316,37 @@ export const getPaperForTestAttempt = async (paperId, currentUser) => {
     throw new AppError('This test paper is locked. Please purchase the full package to unlock.', 403);
   }
 
+  let nonPharmaTopic = '';
+  let nonPharmaSection = '';
+  let displayParentTitle = series ? series.title : paper.title;
+
+  if (paper.parentType === 'non_pharma' || !series) {
+    const nonPharma = await NonPharmaResource.findOne({
+      $or: [{ testPaperId: paper._id }, { _id: paper.parentId }],
+    });
+    if (nonPharma) {
+      const sectionLabels = {
+        reasoning: 'Reasoning Ability',
+        maths: 'Quantitative Aptitude',
+        current_affairs: 'Current Affairs',
+        general_studies_gk: 'General Studies & GK',
+      };
+      displayParentTitle = sectionLabels[nonPharma.section] || nonPharma.title;
+      nonPharmaTopic = nonPharma.topic || '';
+      nonPharmaSection = nonPharma.section || '';
+    }
+  }
+
+  if (paper.parentType === 'single_model' && !series) {
+    const singleModel = await SingleModelPaper.findOne({
+      $or: [{ testPaperId: paper._id }, { _id: paper.parentId }],
+    });
+    if (singleModel) {
+      displayParentTitle = singleModel.title;
+      nonPharmaSection = singleModel.examType || '';
+    }
+  }
+
   const sanitizedQuestions = paper.questions.map((q, idx) => ({
     _id: q._id,
     index: idx,
@@ -323,20 +355,22 @@ export const getPaperForTestAttempt = async (paperId, currentUser) => {
     questionTextHindi: q.questionTextHindi || '',
     optionsHindi: q.optionsHindi || [],
     subject: q.subject,
-    topic: q.topic,
+    topic: q.topic || nonPharmaTopic,
     imageUrl: q.imageUrl,
   }));
 
   return {
     _id: paper._id,
     testSeriesId: series ? series._id : null,
-    testSeriesTitle: series ? series.title : paper.title,
+    testSeriesTitle: displayParentTitle,
     title: paper.title,
+    topic: nonPharmaTopic || (paper.questions?.[0]?.topic) || '',
+    section: nonPharmaSection || '',
     paperNumber: paper.paperNumber,
     durationMinutes: paper.durationMinutes,
     totalMarks: paper.totalMarks,
-    positiveMarks: paper.positiveMarks,
-    negativeMarks: paper.negativeMarks,
+    positiveMarks: paper.positiveMarks !== undefined && paper.positiveMarks !== null ? Number(paper.positiveMarks) : 1,
+    negativeMarks: paper.negativeMarks !== undefined && paper.negativeMarks !== null ? Number(paper.negativeMarks) : 0.25,
     difficulty: paper.difficulty,
     questions: sanitizedQuestions,
   };

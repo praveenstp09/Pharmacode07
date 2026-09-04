@@ -52,6 +52,29 @@ export const submitTestAttempt = async (userId, { paperId, answers, timeSpentSec
       }
     }
 
+    if (!hasAccess && (paper.parentType === 'non_pharma' || !paper.testSeriesId)) {
+      const nonPharma = await NonPharmaResource.findOne({
+        $or: [{ _id: paper.parentId }, { testPaperId: paper._id }],
+      });
+      if (nonPharma) {
+        if (nonPharma.isFree || !nonPharma.isPaid || (nonPharma.price || 0) === 0) {
+          hasAccess = true;
+        } else {
+          const isNonPharmaPurchased = user.purchasedNonPharma?.some(
+            id => id.toString() === nonPharma._id.toString()
+          );
+          const nonPharmaPurchase = await Purchase.findOne({
+            userId: user._id,
+            itemType: 'NonPharmaResource',
+            itemId: nonPharma._id,
+            isActive: true,
+            expiresAt: { $gt: new Date() },
+          });
+          if (isNonPharmaPurchased || nonPharmaPurchase) hasAccess = true;
+        }
+      }
+    }
+
     const targetSeriesId = paper.testSeriesId || (paper.parentType === 'test_series' ? paper.parentId : null);
     if (!hasAccess && targetSeriesId) {
       const isSeriesPurchased = user.purchasedTests?.some(
@@ -256,6 +279,38 @@ export const fetchAttemptDetails = async (attemptId, currentUser) => {
     throw new AppError('The test paper associated with this attempt has been deleted or is no longer available.', 404);
   }
 
+  let parentTitle = attempt.testSeriesId?.title || '';
+  let parentSlug = attempt.testSeriesId?.slug || '';
+  let topicName = '';
+  let sectionName = '';
+
+  if (paper.parentType === 'non_pharma' || !attempt.testSeriesId) {
+    const nonPharma = await NonPharmaResource.findOne({
+      $or: [{ testPaperId: paper._id }, { _id: paper.parentId }],
+    });
+    if (nonPharma) {
+      const sectionLabels = {
+        reasoning: 'Reasoning Ability',
+        maths: 'Quantitative Aptitude',
+        current_affairs: 'Current Affairs',
+        general_studies_gk: 'General Studies & GK',
+      };
+      parentTitle = sectionLabels[nonPharma.section] || nonPharma.title;
+      topicName = nonPharma.topic || '';
+      sectionName = nonPharma.section || '';
+    }
+  }
+
+  if (!parentTitle && paper.parentType === 'single_model') {
+    const singleModel = await SingleModelPaper.findOne({
+      $or: [{ testPaperId: paper._id }, { _id: paper.parentId }],
+    });
+    if (singleModel) {
+      parentTitle = singleModel.title;
+      sectionName = singleModel.examType || '';
+    }
+  }
+
   const detailedQuestions = paper.questions.map((q, idx) => {
     const studentAns = attempt.answers[idx] || { selectedOption: -1, isCorrect: false, timeSpentSeconds: 0 };
     return {
@@ -271,16 +326,18 @@ export const fetchAttemptDetails = async (attemptId, currentUser) => {
       explanation: q.explanation,
       explanationHindi: q.explanationHindi || '',
       subject: q.subject,
-      topic: q.topic,
+      topic: q.topic || topicName,
       imageUrl: q.imageUrl,
     };
   });
 
   return {
     _id: attempt._id,
-    testSeriesTitle: attempt.testSeriesId?.title,
-    testSeriesSlug: attempt.testSeriesId?.slug,
+    testSeriesTitle: parentTitle || attempt.testSeriesId?.title || paper.title,
+    testSeriesSlug: parentSlug,
     testPaperTitle: paper.title,
+    topic: topicName,
+    section: sectionName,
     paperId: paper._id,
     score: attempt.score,
     totalMarks: attempt.totalMarks,

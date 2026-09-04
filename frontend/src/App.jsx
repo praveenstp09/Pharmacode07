@@ -108,8 +108,11 @@ function App() {
                       }
                     />
                     <Route path="/practice" element={<PracticeQuiz />} />
+                    <Route path="/free-quizzes" element={<PracticeQuiz />} />
                     <Route path="/materials" element={<StudyMaterials />} />
+                    <Route path="/study-materials" element={<StudyMaterials />} />
                     <Route path="/model-papers" element={<SingleModelPapers />} />
+                    <Route path="/single-model-papers" element={<SingleModelPapers />} />
                     <Route path="/non-pharma" element={<NonPharmaHub />} />
                     <Route path="/pyqs" element={<PYQs />} />
                     <Route path="/cart" element={<Cart />} />

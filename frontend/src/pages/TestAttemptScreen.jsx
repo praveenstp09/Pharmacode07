@@ -207,11 +207,29 @@ const TestAttemptScreen = () => {
               CBT
             </div>
             <div className="truncate">
-              <h1 className="font-bold text-sm sm:text-base text-white truncate">
-                {paper.title}
-              </h1>
-              <p className="text-[11px] text-slate-400 truncate">
-                {paper.testSeriesTitle} | Total Marks: {paper.totalMarks}
+              <div className="flex items-center gap-2 truncate">
+                <h1 className="font-bold text-sm sm:text-base text-white truncate">
+                  {paper.title}
+                </h1>
+                {paper.topic && (
+                  <span className="text-[10px] font-extrabold bg-blue-500/20 text-blue-300 border border-blue-400/30 px-2 py-0.5 rounded-full hidden sm:inline-block flex-shrink-0">
+                    Topic: {paper.topic}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-400 truncate flex items-center gap-1.5 flex-wrap">
+                {paper.topic && (
+                  <span className="text-blue-400 font-semibold sm:hidden">
+                    Topic: {paper.topic} •
+                  </span>
+                )}
+                {paper.testSeriesTitle && paper.testSeriesTitle !== paper.title && (
+                  <span>{paper.testSeriesTitle} •</span>
+                )}
+                <span>Total Marks: {paper.totalMarks}</span>
+                {paper.questions && (
+                  <span>• {paper.questions.length} Questions</span>
+                )}
               </p>
             </div>
           </div>
