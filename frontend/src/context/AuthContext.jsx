@@ -96,6 +96,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('pharmacode_token');
     localStorage.removeItem('pharmacode_refresh_token');
     localStorage.removeItem('pharmacode_user');
+    localStorage.removeItem('pharmacode_cart');
+    localStorage.removeItem('pharmacode_cart_guest');
   };
 
   const refreshUser = async () => {

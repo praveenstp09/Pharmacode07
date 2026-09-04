@@ -1,34 +1,74 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
 
+const getCartKey = (u) => {
+  if (u && (u.id || u._id)) {
+    return `pharmacode_cart_${u.id || u._id}`;
+  }
+  return 'pharmacode_cart_guest';
+};
+
+const loadCartFromStorage = (key) => {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    localStorage.removeItem(key);
+    return [];
+  }
+};
+
 export const CartProvider = ({ children }) => {
-  const [items, setItems] = useState(() => {
-    try {
-      const saved = localStorage.getItem('pharmacode_cart');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      localStorage.removeItem('pharmacode_cart');
-      return [];
-    }
-  });
+  const { user } = useAuth();
+  const [activeKey, setActiveKey] = useState(() => getCartKey(user));
+  const [items, setItems] = useState(() => loadCartFromStorage(getCartKey(user)));
   const [coupon, setCoupon] = useState(null);
   const [discountAmount, setDiscountAmount] = useState(0);
 
+  // Sync cart when user logs in, logs out, or switches accounts
+  useEffect(() => {
+    const newKey = getCartKey(user);
+    setActiveKey(newKey);
+    let loadedItems = loadCartFromStorage(newKey);
+
+    // If user is logged in, filter out items that this user has already purchased
+    if (user) {
+      const userTests = user.purchasedTests || [];
+      const userMaterials = user.purchasedMaterials || [];
+      const userSingleModels = user.purchasedSingleModels || [];
+      const userNonPharma = user.purchasedNonPharma || [];
+
+      loadedItems = loadedItems.filter(item => {
+        const itemIdStr = (item.id || item._id || item.itemId || '').toString();
+        if (item.type === 'TestSeries' && userTests.some(id => (id?._id || id)?.toString() === itemIdStr)) return false;
+        if (item.type === 'StudyMaterial' && userMaterials.some(id => (id?._id || id)?.toString() === itemIdStr)) return false;
+        if (item.type === 'SingleModelPaper' && userSingleModels.some(id => (id?._id || id)?.toString() === itemIdStr)) return false;
+        if (item.type === 'NonPharmaResource' && userNonPharma.some(id => (id?._id || id)?.toString() === itemIdStr)) return false;
+        return true;
+      });
+    }
+
+    setItems(loadedItems);
+    setCoupon(null);
+    setDiscountAmount(0);
+  }, [user]);
+
+  // Persist items to current active user storage key
   useEffect(() => {
     try {
-      localStorage.setItem('pharmacode_cart', JSON.stringify(items));
+      localStorage.setItem(activeKey, JSON.stringify(items));
     } catch (e) {
       console.error('Failed to save cart to localStorage', e);
     }
     if (coupon) {
       recalculateDiscount(coupon, items);
     }
-  }, [items]);
+  }, [items, activeKey]);
 
   const addToCart = (item, customType = null) => {
-    // Check if already in cart
     const id = item._id || item.id;
     const exists = items.some(i => i.id === id);
     if (exists) {
@@ -71,7 +111,9 @@ export const CartProvider = ({ children }) => {
     setItems([]);
     setCoupon(null);
     setDiscountAmount(0);
+    localStorage.removeItem(activeKey);
     localStorage.removeItem('pharmacode_cart');
+    localStorage.removeItem('pharmacode_cart_guest');
   };
 
   const subtotal = items.reduce((acc, curr) => acc + curr.price, 0);
