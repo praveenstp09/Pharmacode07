@@ -1,22 +1,29 @@
 import User from '../models/User.js';
 
-// Auto-seed ONLY the official master admin if not found in database
+// Auto-seed admin account only if ADMIN_INITIAL_PASSWORD is provided in environment variables
 export const autoSeedIfEmpty = async () => {
   try {
-    const adminEmail = 'pharmacode07exams@gmail.com';
-    const adminExists = await User.findOne({ email: adminEmail });
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_INITIAL_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+      // Skip auto-seeding if credentials are not explicitly set in .env
+      return;
+    }
+
+    const adminExists = await User.findOne({ email: adminEmail.toLowerCase().trim() });
 
     if (!adminExists) {
-      console.log(`🌱 Initializing official admin account (${adminEmail})...`);
+      console.log(`🌱 Initializing admin account (${adminEmail})...`);
       await User.create({
         name: 'PharmaCode Admin',
-        email: adminEmail,
-        mobile: '9336331163',
-        password: 'pharmacode@&07',
+        email: adminEmail.toLowerCase().trim(),
+        mobile: process.env.ADMIN_MOBILE || '',
+        password: adminPassword,
         role: 'admin',
         isEmailVerified: true,
       });
-      console.log(`✅ Official Admin account (${adminEmail}) successfully initialized!`);
+      console.log(`✅ Admin account (${adminEmail}) initialized from environment variables.`);
     }
   } catch (err) {
     console.error('⚠️ Admin Init Warning:', err.message);

@@ -49,14 +49,22 @@ const resetAndSeedAdmin = async () => {
     ]);
     console.log('✅ Database wiped cleanly! 0 mock items remaining.');
 
-    const adminEmail = 'pharmacode07exams@gmail.com';
-    console.log(`👤 Seeding official Admin account (${adminEmail})...`);
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_INITIAL_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+      console.log('ℹ️ No ADMIN_EMAIL or ADMIN_INITIAL_PASSWORD provided in .env. Skipping admin creation.');
+      console.log('🎉 Database wiped cleanly and ready for production!');
+      process.exit(0);
+    }
+
+    console.log(`👤 Seeding Admin account (${adminEmail})...`);
 
     const admin = await User.create({
       name: 'PharmaCode Admin',
-      email: adminEmail,
-      mobile: '9336331163',
-      password: 'pharmacode@&07',
+      email: adminEmail.toLowerCase().trim(),
+      mobile: process.env.ADMIN_MOBILE || '',
+      password: adminPassword,
       role: 'admin',
       isEmailVerified: true,
     });
