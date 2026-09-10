@@ -7,6 +7,7 @@ import TestSeries from '../models/TestSeries.js';
 import StudyMaterial from '../models/StudyMaterial.js';
 import SingleModelPaper from '../models/SingleModelPaper.js';
 import NonPharmaResource from '../models/NonPharmaResource.js';
+import StudyPack from '../models/StudyPack.js';
 import razorpayInstance from '../config/razorpay.js';
 import AppError from '../utils/AppError.js';
 
@@ -38,6 +39,11 @@ export const enrollUserInItems = async (userId, items, orderId = null) => {
       user.purchasedNonPharma = user.purchasedNonPharma || [];
       if (!user.purchasedNonPharma.some(id => id.toString() === itemIdStr)) {
         user.purchasedNonPharma.push(item.itemId);
+      }
+    } else if (item.itemType === 'StudyPack') {
+      user.purchasedStudyPacks = user.purchasedStudyPacks || [];
+      if (!user.purchasedStudyPacks.some(id => id.toString() === itemIdStr)) {
+        user.purchasedStudyPacks.push(item.itemId);
       }
     }
 
@@ -97,6 +103,8 @@ export const initiateCheckoutOrder = async (currentUser, { items, couponCode }) 
       dbItem = await SingleModelPaper.findById(itemId);
     } else if (itemType === 'NonPharmaResource') {
       dbItem = await NonPharmaResource.findById(itemId);
+    } else if (itemType === 'StudyPack') {
+      dbItem = await StudyPack.findById(itemId);
     }
 
     if (!dbItem) {
@@ -118,6 +126,10 @@ export const initiateCheckoutOrder = async (currentUser, { items, couponCode }) 
       itemPrice = dbItem.isFree ? 0 : Math.min(p || sp, sp);
     } else if (itemType === 'NonPharmaResource') {
       itemPrice = dbItem.isFree ? 0 : Number(dbItem.price || 0);
+    } else if (itemType === 'StudyPack') {
+      const p = Number(dbItem.price || 0);
+      const sp = dbItem.discountPrice !== undefined && dbItem.discountPrice !== null ? Number(dbItem.discountPrice) : p;
+      itemPrice = dbItem.isFree ? 0 : Math.min(p || sp, sp);
     }
 
     subtotal += itemPrice;

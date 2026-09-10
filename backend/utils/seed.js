@@ -14,6 +14,8 @@ import Purchase from '../models/Purchase.js';
 import Coupon from '../models/Coupon.js';
 import Contact from '../models/Contact.js';
 import Notification from '../models/Notification.js';
+import StudyPack from '../models/StudyPack.js';
+import StudyPackItem from '../models/StudyPackItem.js';
 
 dotenv.config();
 
@@ -46,6 +48,8 @@ const resetAndSeedAdmin = async () => {
       Coupon.deleteMany({}),
       Contact.deleteMany({}),
       Notification.deleteMany({}),
+      StudyPack.deleteMany({}),
+      StudyPackItem.deleteMany({}),
     ]);
     console.log('✅ Database wiped cleanly! 0 mock items remaining.');
 

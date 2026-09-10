@@ -11,6 +11,8 @@ import Contact from '../models/Contact.js';
 import FolderItem from '../models/FolderItem.js';
 import SingleModelPaper from '../models/SingleModelPaper.js';
 import NonPharmaResource from '../models/NonPharmaResource.js';
+import StudyPack from '../models/StudyPack.js';
+import StudyPackItem from '../models/StudyPackItem.js';
 import { uploadToCloudinaryOrLocal } from '../utils/upload.js';
 import AppError from '../utils/AppError.js';
 import { getCache, setCache, delCache } from '../utils/cache.js';
@@ -81,6 +83,8 @@ export const fetchAdminStats = async () => {
     totalNonPharma,
     totalCoupons,
     totalOrders,
+    totalStudyPacks,
+    totalNotesPdfs,
   ] = await Promise.all([
     User.countDocuments({ role: 'student' }),
     User.countDocuments({ role: 'admin' }),
@@ -93,6 +97,8 @@ export const fetchAdminStats = async () => {
     NonPharmaResource.countDocuments(),
     Coupon.countDocuments(),
     Order.countDocuments({ paymentStatus: 'completed' }),
+    StudyPack.countDocuments(),
+    StudyPackItem.countDocuments(),
   ]);
 
   const completedOrders = await Order.find({ paymentStatus: 'completed' });
@@ -109,9 +115,9 @@ export const fetchAdminStats = async () => {
     Order.find().populate('userId', 'name email mobile').sort({ createdAt: -1 }).limit(6),
     TestAttempt.find().populate('userId', 'name email').populate('testSeriesId', 'title').populate('testPaperId', 'title').sort({ completedAt: -1 }).limit(6),
     TestSeries.find().sort({ enrolledCount: -1 }).limit(5).select('title examType enrolledCount price discountPrice'),
-    StudyMaterial.countDocuments({ courseType: 'B.Pharm' }),
-    StudyMaterial.countDocuments({ courseType: 'D.Pharm' }),
-    StudyMaterial.countDocuments({ courseType: 'Exam' }),
+    StudyPack.countDocuments({ courseType: 'B.Pharm' }),
+    StudyPack.countDocuments({ courseType: 'D.Pharm' }),
+    StudyPack.countDocuments({ courseType: 'QuickRevision' }),
   ]);
 
   const registrationTrend = buildDailyTrend(recentUsers, 7);
@@ -121,7 +127,8 @@ export const fetchAdminStats = async () => {
   const contentInventory = {
     testSeriesPacks: totalSeries,
     folderItems: totalFolderItems,
-    studyMaterials: totalStudyMaterials,
+    studyMaterials: totalStudyPacks || totalStudyMaterials,
+    studyNotesPdfs: totalNotesPdfs,
     singleModelPapers: totalSingleModels,
     nonPharmaResources: totalNonPharma,
     totalCBTPapers: totalPapers,

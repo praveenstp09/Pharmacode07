@@ -23,11 +23,15 @@ export const syncUserPurchases = async (user) => {
   const activeNonPharmaIds = activePurchases
     .filter(p => p.itemType === 'NonPharmaResource')
     .map(p => p.itemId.toString());
+  const activeStudyPackIds = activePurchases
+    .filter(p => p.itemType === 'StudyPack')
+    .map(p => p.itemId.toString());
 
   user.purchasedTests = activeTestIds;
   user.purchasedMaterials = activeMaterialIds;
   user.purchasedSingleModels = activeSingleModelIds;
   user.purchasedNonPharma = activeNonPharmaIds;
+  user.purchasedStudyPacks = activeStudyPackIds;
 
   await user.save();
 };
@@ -43,6 +47,7 @@ export const formatUser = (user) => ({
   purchasedMaterials: (user.purchasedMaterials || []).map(m => (m?._id || m).toString()),
   purchasedSingleModels: (user.purchasedSingleModels || []).map(m => (m?._id || m).toString()),
   purchasedNonPharma: (user.purchasedNonPharma || []).map(m => (m?._id || m).toString()),
+  purchasedStudyPacks: (user.purchasedStudyPacks || []).map(m => (m?._id || m).toString()),
 });
 
 export const registerUser = async ({ name, email, mobile, password }) => {

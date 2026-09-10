@@ -63,6 +63,12 @@ const userSchema = new mongoose.Schema(
         ref: 'NonPharmaResource',
       },
     ],
+    purchasedStudyPacks: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'StudyPack',
+      },
+    ],
     resetPasswordToken: {
       type: String,
       select: false,

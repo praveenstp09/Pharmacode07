@@ -3,8 +3,13 @@ import axios from 'axios';
 let rawBaseUrl = import.meta.env.VITE_API_URL;
 
 if (!rawBaseUrl) {
-  // If running on localhost / 127.0.0.1, use Vite proxy /api
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+  // If running on localhost / 127.0.0.1 or devtunnels, use Vite proxy /api
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.includes('devtunnels.ms'))
+  ) {
     rawBaseUrl = '/api';
   } else {
     // In production on Render (e.g. pharmacode07-arxj.onrender.com), connect directly to backend
@@ -24,6 +29,7 @@ const api = axios.create({
   baseURL: rawBaseUrl,
   headers: {
     'Content-Type': 'application/json',
+    'X-Tunnel-Skip-Anti-Phishing-Page': 'true',
   },
 });
 

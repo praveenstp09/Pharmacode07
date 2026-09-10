@@ -30,6 +30,7 @@ import contactRoutes from './routes/contactRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import singleModelRoutes from './routes/singleModelRoutes.js';
 import nonPharmaRoutes from './routes/nonPharmaRoutes.js';
+import studyPackRoutes from './routes/studyPackRoutes.js';
 
 dotenv.config();
 
@@ -73,6 +74,7 @@ const allowedOrigins = [
   'https://pharmacode07.onrender.com',
   'https://pharmacode07-arxj.onrender.com',
   'https://pharmacode-frontend.onrender.com',
+  'https://wrhwvdsl-5173.inc1.devtunnels.ms',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
@@ -80,14 +82,20 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      const isAllowed =
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.devtunnels.ms') ||
+        origin.endsWith('.onrender.com') ||
+        process.env.NODE_ENV !== 'production';
+
+      if (isAllowed) {
         return callback(null, true);
       }
       return callback(new Error('Blocked by CORS policy'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-razorpay-signature'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-razorpay-signature', 'x-tunnel-skip-anti-phishing-page'],
   })
 );
 
@@ -147,6 +155,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/single-models', singleModelRoutes);
 app.use('/api/non-pharma', nonPharmaRoutes);
+app.use('/api/study-packs', studyPackRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

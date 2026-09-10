@@ -272,6 +272,7 @@ export const uploadFileEndpoint = async (req, res, next) => {
     res.json({
       success: true,
       message: 'File uploaded successfully!',
+      url: uploadResult.url,
       data: uploadResult,
     });
   } catch (error) {

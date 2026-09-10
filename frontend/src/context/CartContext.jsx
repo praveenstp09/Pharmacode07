@@ -40,6 +40,7 @@ export const CartProvider = ({ children }) => {
       const userMaterials = user.purchasedMaterials || [];
       const userSingleModels = user.purchasedSingleModels || [];
       const userNonPharma = user.purchasedNonPharma || [];
+      const userStudyPacks = user.purchasedStudyPacks || [];
 
       loadedItems = loadedItems.filter(item => {
         const itemIdStr = (item.id || item._id || item.itemId || '').toString();
@@ -47,6 +48,7 @@ export const CartProvider = ({ children }) => {
         if (item.type === 'StudyMaterial' && userMaterials.some(id => (id?._id || id)?.toString() === itemIdStr)) return false;
         if (item.type === 'SingleModelPaper' && userSingleModels.some(id => (id?._id || id)?.toString() === itemIdStr)) return false;
         if (item.type === 'NonPharmaResource' && userNonPharma.some(id => (id?._id || id)?.toString() === itemIdStr)) return false;
+        if (item.type === 'StudyPack' && userStudyPacks.some(id => (id?._id || id)?.toString() === itemIdStr)) return false;
         return true;
       });
     }
@@ -77,10 +79,11 @@ export const CartProvider = ({ children }) => {
 
     let resolvedType = customType;
     if (!resolvedType) {
-      if (item.totalTests !== undefined) resolvedType = 'TestSeries';
+      if (item.totalPdfs !== undefined && item.courseType !== undefined) resolvedType = 'StudyPack';
+      else if (item.totalTests !== undefined) resolvedType = 'TestSeries';
       else if (item.hasCBT !== undefined || item.totalQuestions !== undefined) resolvedType = 'SingleModelPaper';
-      else if (item.courseType !== undefined) resolvedType = 'StudyMaterial';
-      else resolvedType = 'StudyMaterial';
+      else if (item.courseType !== undefined) resolvedType = 'StudyPack';
+      else resolvedType = 'StudyPack';
     }
 
     const basePrice = Number(item.price || 0);

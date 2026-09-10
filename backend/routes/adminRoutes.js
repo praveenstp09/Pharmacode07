@@ -29,6 +29,16 @@ import {
   deleteFolderItem,
   uploadFileEndpoint,
 } from '../controllers/adminController.js';
+import {
+  adminGetAllPacks,
+  adminCreatePack,
+  adminUpdatePack,
+  adminDeletePack,
+  adminGetPackItems,
+  adminAddItemToPack,
+  adminUpdateItem,
+  adminDeleteItem,
+} from '../controllers/studyPackController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { upload } from '../utils/upload.js';
 
@@ -65,6 +75,16 @@ router.post('/test-papers/:id/bulk-questions', bulkAddQuestionsToPaper);
 router.post('/materials', createMaterial);
 router.put('/materials/:id', updateMaterial);
 router.delete('/materials/:id', deleteMaterial);
+
+// Study Material Packages CRUD
+router.get('/study-packs', adminGetAllPacks);
+router.post('/study-packs', adminCreatePack);
+router.put('/study-packs/:id', adminUpdatePack);
+router.delete('/study-packs/:id', adminDeletePack);
+router.get('/study-packs/:packId/items', adminGetPackItems);
+router.post('/study-packs/:packId/items', adminAddItemToPack);
+router.put('/study-pack-items/:id', adminUpdateItem);
+router.delete('/study-pack-items/:id', adminDeleteItem);
 
 // Coupons CRUD
 router.get('/coupons', getCoupons);

@@ -32,7 +32,8 @@ const Contact = lazy(() => import('./pages/Contact'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const TestAttemptScreen = lazy(() => import('./pages/TestAttemptScreen'));
 const TestResult = lazy(() => import('./pages/TestResult'));
-const StudyMaterials = lazy(() => import('./pages/StudyMaterials'));
+const StudyPackMarketplace = lazy(() => import('./pages/StudyPackMarketplace'));
+const StudyPackDetail = lazy(() => import('./pages/StudyPackDetail'));
 const SingleModelPapers = lazy(() => import('./pages/SingleModelPapers'));
 const NonPharmaHub = lazy(() => import('./pages/NonPharmaHub'));
 
@@ -109,8 +110,9 @@ function App() {
                     />
                     <Route path="/practice" element={<PracticeQuiz />} />
                     <Route path="/free-quizzes" element={<PracticeQuiz />} />
-                    <Route path="/materials" element={<StudyMaterials />} />
-                    <Route path="/study-materials" element={<StudyMaterials />} />
+                    <Route path="/materials" element={<StudyPackMarketplace />} />
+                    <Route path="/study-materials" element={<StudyPackMarketplace />} />
+                    <Route path="/study-materials/:slug" element={<StudyPackDetail />} />
                     <Route path="/model-papers" element={<SingleModelPapers />} />
                     <Route path="/single-model-papers" element={<SingleModelPapers />} />
                     <Route path="/non-pharma" element={<NonPharmaHub />} />

@@ -140,7 +140,7 @@ export const validateCreateOrder = [
         if (!itemId || !/^[0-9a-fA-F]{24}$/.test(itemId)) {
           throw new Error(`Valid Item ID is required for item #${idx + 1}`);
         }
-        if (!['TestSeries', 'StudyMaterial', 'SingleModelPaper', 'NonPharmaResource'].includes(itemType)) {
+        if (!['TestSeries', 'StudyMaterial', 'SingleModelPaper', 'NonPharmaResource', 'StudyPack'].includes(itemType)) {
           throw new Error(`Invalid Item Type "${itemType}" for item #${idx + 1}`);
         }
         return {

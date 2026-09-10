@@ -10,7 +10,7 @@ const purchaseSchema = new mongoose.Schema(
     },
     itemType: {
       type: String,
-      enum: ['TestSeries', 'StudyMaterial', 'SingleModelPaper', 'NonPharmaResource'],
+      enum: ['TestSeries', 'StudyMaterial', 'SingleModelPaper', 'NonPharmaResource', 'StudyPack'],
       required: true,
     },
     itemId: {

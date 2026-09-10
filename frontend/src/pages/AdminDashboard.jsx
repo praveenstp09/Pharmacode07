@@ -8,7 +8,7 @@ import { useToast } from '../context/ToastContext';
 // Modular Admin Tab Components
 import AdminStatsTab from '../components/admin/AdminStatsTab';
 import AdminTestSeriesTab from '../components/admin/AdminTestSeriesTab';
-import AdminMaterialsTab from '../components/admin/AdminMaterialsTab';
+import AdminStudyPackTab from '../components/admin/AdminStudyPackTab';
 import AdminSingleModelsTab from '../components/admin/AdminSingleModelsTab';
 import AdminNonPharmaTab from '../components/admin/AdminNonPharmaTab';
 import AdminCouponsTab from '../components/admin/AdminCouponsTab';
@@ -223,16 +223,7 @@ const AdminDashboard = () => {
       )}
 
       {activeTab === 'materials' && (
-        <AdminMaterialsTab
-          materialsList={materialsList}
-          fetchAdminData={fetchAdminData}
-          setEditModal={setEditModal}
-          showToast={showToast}
-          handleFileUpload={handleFileUpload}
-          uploadingFile={uploadingFile}
-          uploadProgress={uploadProgress}
-          uploadContext={uploadContext}
-        />
+        <AdminStudyPackTab />
       )}
 
       {activeTab === 'singleModels' && (

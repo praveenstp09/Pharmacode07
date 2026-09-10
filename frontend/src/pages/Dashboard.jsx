@@ -32,6 +32,7 @@ const Dashboard = () => {
   const [purchasedModels, setPurchasedModels] = useState([]);
   const [attempts, setAttempts] = useState([]);
   const [materials, setMaterials] = useState([]);
+  const [purchasedPacks, setPurchasedPacks] = useState([]);
   const [nonPharma, setNonPharma] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -95,6 +96,20 @@ const Dashboard = () => {
           userMaterials.some(p => (p?._id || p)?.toString() === m._id?.toString())
         );
         setMaterials(ownedMat);
+      }
+
+      // 4b. Fetch study material packages owned by the student
+      try {
+        const userPacks = currentUser?.purchasedStudyPacks || [];
+        const packRes = await api.get('/study-packs');
+        if (packRes.data.success) {
+          const ownedPacks = (packRes.data.data || []).filter(p =>
+            userPacks.some(id => (id?._id || id)?.toString() === p._id?.toString())
+          );
+          setPurchasedPacks(ownedPacks);
+        }
+      } catch (packErr) {
+        console.error('Failed to load study packs for dashboard', packErr);
       }
 
       // 5. Fetch non-pharma packages owned by the student
@@ -471,7 +486,7 @@ const Dashboard = () => {
                 <CardSkeleton key={i} />
               ))}
             </div>
-          ) : materials.length === 0 ? (
+          ) : materials.length === 0 && purchasedPacks.length === 0 ? (
             <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-4 shadow-sm">
               <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
                 <BookOpen className="w-8 h-8" />
@@ -488,7 +503,53 @@ const Dashboard = () => {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-6">
+              {/* Study Material Packages */}
+              {purchasedPacks.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Enrolled Study Material Packages ({purchasedPacks.length})
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {purchasedPacks.map((pack) => (
+                      <div
+                        key={pack._id}
+                        className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex items-center justify-between gap-4 hover:border-blue-300 transition"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                              {pack.courseType}
+                            </span>
+                            {pack.scopeLabel && (
+                              <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                {pack.scopeLabel}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-bold text-slate-900 text-sm leading-snug">{pack.title}</h4>
+                          <p className="text-xs text-slate-500">{pack.totalPdfs || 0} PDFs Included • 365 Days Access</p>
+                        </div>
+
+                        <Link
+                          to={`/study-materials/${pack.slug}`}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition flex-shrink-0"
+                        >
+                          Open Notes →
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Legacy Single PDFs if any */}
+              {materials.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Individual Purchased Notes ({materials.length})
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {materials.map(mat => (
                 <div
                   key={mat._id}
@@ -519,9 +580,12 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+)}
 
       {/* Tab 4: Single Model Papers & Custom Packs */}
       {activeTab === 'models' && (

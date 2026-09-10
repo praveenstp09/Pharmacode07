@@ -7,6 +7,8 @@ import FolderItem from '../models/FolderItem.js';
 import StudyMaterial from '../models/StudyMaterial.js';
 import SingleModelPaper from '../models/SingleModelPaper.js';
 import NonPharmaResource from '../models/NonPharmaResource.js';
+import StudyPack from '../models/StudyPack.js';
+import StudyPackItem from '../models/StudyPackItem.js';
 
 dotenv.config();
 
@@ -231,95 +233,161 @@ const seedAllPillars = async () => {
     }
 
     // -------------------------------------------------------------
-    // PILLAR 2: ACADEMIC & EXAM STUDY MATERIALS (B.PHARM / D.PHARM / EXAMS)
+    // PILLAR 2: DIGITAL STUDY MATERIAL PACKAGES (B.PHARM / D.PHARM / QUICK REVISION)
     // -------------------------------------------------------------
-    const sampleMaterials = [
+    const samplePacks = [
       {
-        title: 'Human Anatomy & Physiology-I: Cell, Tissues & Blood Notes',
-        slug: 'bpharm-sem1-hap1-notes-ch1',
-        description: 'Complete handwritten revision notes covering Cell, Tissues, Skeletal system, and Hemopoietic system for B.Pharm 1st Semester.',
+        title: 'Complete B.Pharm Study Material Package (Semesters 1-8)',
+        slug: 'complete-bpharm-study-material-sem-1-8',
+        description: 'Comprehensive curriculum notes and solved university papers covering all 8 semesters of B.Pharm as per PCI syllabus.',
         courseType: 'B.Pharm',
-        semesterOrYear: 'Semester 1',
-        subject: 'Human Anatomy and Physiology I',
-        chapter: 'Chapter 1: Cellular Level of Organization',
-        materialType: 'chapter_notes',
-        category: 'Notes',
-        examType: 'B.Pharm',
-        fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-        isPaid: false,
-        price: 0,
+        scopeLabel: 'Semesters 1-8',
+        price: 999,
+        discountPrice: 499,
+        isFree: false,
+        validityDays: 365,
         published: true,
+        thumbnail: 'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=600&auto=format&fit=crop&q=80',
+        highlights: [
+          'All 8 B.Pharm Semesters covered',
+          'Human Anatomy, Pharmaceutics & Pharmacology notes',
+          'Previous 5-year university solved question papers',
+          'Downloadable offline PDFs for mobile & print',
+        ],
+        items: [
+          {
+            folderName: 'Semester 1',
+            subjectName: 'Human Anatomy and Physiology I',
+            chapterName: 'Chapter 1: Cellular Level of Organization',
+            title: 'HAP-I: Cell, Tissues & Skeletal System Notes',
+            pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+            isFreeDemo: true,
+            pageCount: 38,
+          },
+          {
+            folderName: 'Semester 1',
+            subjectName: 'Pharmaceutics I',
+            chapterName: 'Chapter 1: Dosage Forms & Prescriptions',
+            title: 'Pharmaceutics-I: Posology & Dosage Forms Revision Guide',
+            pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+            isFreeDemo: false,
+            pageCount: 42,
+          },
+          {
+            folderName: 'Semester 1',
+            subjectName: 'Pharmaceutical Analysis',
+            chapterName: 'Unit 1: Errors & Primary Standards',
+            title: 'Analysis-I: Volumetric Titrations & Errors Sheet',
+            pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+            isFreeDemo: false,
+            pageCount: 29,
+          },
+          {
+            folderName: 'Semester 4',
+            subjectName: 'Pharmacology I',
+            chapterName: 'Unit 2: Autonomic Nervous System',
+            title: 'Pharmacology-I: ANS Drugs & Neurotransmission Handout',
+            pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+            isFreeDemo: false,
+            pageCount: 54,
+          },
+        ],
       },
       {
-        title: 'B.Pharm Semester 1 University End-Semester PYQ Question Papers (2019-2025)',
-        slug: 'bpharm-sem1-university-pyqs',
-        description: 'Combined collection of official semester question papers for HAP-I, Analysis-I, Pharmaceutics-I, Inorganic Chemistry.',
-        courseType: 'B.Pharm',
-        semesterOrYear: 'Semester 1',
-        subject: 'All Subjects',
-        chapter: 'Semester 1 Board Exam Papers',
-        materialType: 'pyq_paper',
-        category: 'PYQ',
-        examType: 'B.Pharm',
-        fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-        isPaid: false,
-        price: 0,
-        published: true,
-      },
-      {
-        title: 'Pharmacology-I: General Pharmacology & ANS Revision Notes (B.Pharm Sem 4)',
-        slug: 'bpharm-sem4-pharmacology1-notes',
-        description: 'High-yield revision notes for B.Pharm 4th Semester Pharmacokinetics, Pharmacodynamics, and Autonomic Nervous System.',
-        courseType: 'B.Pharm',
-        semesterOrYear: 'Semester 4',
-        subject: 'Pharmacology I',
-        chapter: 'Chapter 2: Autonomic Pharmacology',
-        materialType: 'chapter_notes',
-        category: 'Notes',
-        examType: 'B.Pharm',
-        fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-        isPaid: false,
-        price: 0,
-        published: true,
-      },
-      {
-        title: 'D.Pharm 1st Year: Pharmaceutics Complete Subject Notes (PCI ER-2020)',
-        slug: 'dpharm-1st-year-pharmaceutics-notes',
-        description: 'Standard syllabus notes covering dosage forms, powders, packaging, and liquid preparations as per PCI ER-2020.',
+        title: 'D.Pharm 1st & 2nd Year Complete Notes & Solved Board Papers',
+        slug: 'dpharm-complete-notes-and-board-papers',
+        description: 'PCI ER-2020 curriculum notes for Diploma in Pharmacy, with annual board examination past year papers.',
         courseType: 'D.Pharm',
-        semesterOrYear: '1st Year',
-        subject: 'Pharmaceutics',
-        chapter: 'Chapter 1: History of Pharmacy & Pharmacopoeias',
-        materialType: 'chapter_notes',
-        category: 'Notes',
-        examType: 'D.Pharm',
-        fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-        isPaid: false,
-        price: 0,
+        scopeLabel: '1st & 2nd Year',
+        price: 599,
+        discountPrice: 299,
+        isFree: false,
+        validityDays: 365,
         published: true,
+        thumbnail: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&auto=format&fit=crop&q=80',
+        highlights: [
+          'Aligned with latest PCI ER-2020 Diploma syllabus',
+          'Pharmaceutics, Pharmacognosy & Social Pharmacy guides',
+          '5-year state board solved examination papers',
+        ],
+        items: [
+          {
+            folderName: '1st Year',
+            subjectName: 'Pharmaceutics',
+            chapterName: 'Chapter 1: History & Pharmacopoeias',
+            title: 'D.Pharm Pharmaceutics: Introduction & Packaging Notes',
+            pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+            isFreeDemo: true,
+            pageCount: 26,
+          },
+          {
+            folderName: '2nd Year',
+            subjectName: 'Pharmacology',
+            chapterName: 'Board Exam Past Papers',
+            title: 'D.Pharm 2nd Year: 5-Year Solved Board Exam Papers',
+            pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+            isFreeDemo: false,
+            pageCount: 65,
+          },
+        ],
       },
       {
-        title: 'D.Pharm 2nd Year: Pharmacology & Toxicology Board PYQ Papers (2020-2025)',
-        slug: 'dpharm-2nd-year-pharmacology-pyqs',
-        description: '5-year solved board examination question papers for D.Pharm 2nd Year annual exams.',
-        courseType: 'D.Pharm',
-        semesterOrYear: '2nd Year',
-        subject: 'Pharmacology',
-        chapter: 'Annual Board Exam Question Bank',
-        materialType: 'pyq_paper',
-        category: 'PYQ',
-        examType: 'D.Pharm',
-        fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-        isPaid: false,
-        price: 0,
+        title: 'High-Yield Quick Revision Notes (All Pharmacy Subjects)',
+        slug: 'high-yield-quick-revision-notes-all-subjects',
+        description: 'Bullet point rapid revision sheets, drug classification lists, and mechanism charts for competitive pharmacist exams.',
+        courseType: 'QuickRevision',
+        scopeLabel: 'All Subjects',
+        price: 299,
+        discountPrice: 149,
+        isFree: false,
+        validityDays: 365,
         published: true,
+        thumbnail: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=600&auto=format&fit=crop&q=80',
+        highlights: [
+          'High-yield one-liners for quick exam recall',
+          'Complete pharmacology drug classification cheat-sheets',
+          'Quick revision for GPAT, GSSSB, ESIC & RRB Pharmacist exams',
+        ],
+        items: [
+          {
+            folderName: 'Pharmacology',
+            subjectName: '',
+            chapterName: 'Drug Classification',
+            title: 'Complete Pharmacology Drug Classification Cheat-Sheet',
+            pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+            isFreeDemo: true,
+            pageCount: 22,
+          },
+          {
+            folderName: 'Pharmaceutical Chemistry',
+            subjectName: '',
+            chapterName: 'Reactions & Syntheses',
+            title: 'Drug Structures, IUPAC & Important Reactions Quick Sheet',
+            pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+            isFreeDemo: false,
+            pageCount: 31,
+          },
+        ],
       },
     ];
 
-    for (const m of sampleMaterials) {
-      await StudyMaterial.findOneAndUpdate({ slug: m.slug }, m, { upsert: true });
+    for (const p of samplePacks) {
+      const { items, ...packData } = p;
+      const pack = await StudyPack.findOneAndUpdate(
+        { slug: packData.slug },
+        { ...packData, totalPdfs: items.length },
+        { upsert: true, new: true }
+      );
+
+      for (const it of items) {
+        await StudyPackItem.findOneAndUpdate(
+          { packId: pack._id, title: it.title },
+          { ...it, packId: pack._id },
+          { upsert: true }
+        );
+      }
     }
-    console.log('✅ Seeded Pillar 2 Study Materials (B.Pharm & D.Pharm)');
+    console.log('✅ Seeded Pillar 2 Study Material Packages (B.Pharm, D.Pharm, Quick Revision)');
 
     // -------------------------------------------------------------
     // PILLAR 3: SINGLE MODEL PAPERS (A-LA-CARTE)
