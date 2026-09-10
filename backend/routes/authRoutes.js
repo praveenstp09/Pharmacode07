@@ -19,6 +19,8 @@ import {
   validateUpdateProfile,
   validateForgotPassword,
   validateResetPassword,
+  validateVerifyEmailOTP,
+  validateResendOTP,
 } from '../middleware/validate.js';
 
 const router = express.Router();
@@ -26,10 +28,10 @@ const router = express.Router();
 router.post('/register', authStrictLimiter, validateRegister, register);
 router.post('/login', authStrictLimiter, validateLogin, login);
 router.post('/refresh-token', authStrictLimiter, validateRefreshToken, refreshToken);
-router.post('/verify-email-otp', authStrictLimiter, verifyEmail);
-router.post('/resend-otp', authStrictLimiter, resendOTP);
+router.post('/verify-email-otp', authStrictLimiter, validateVerifyEmailOTP, verifyEmail);
+router.post('/resend-otp', authStrictLimiter, validateResendOTP, resendOTP);
 router.get('/me', protect, getMe);
-router.put('/update-profile', protect, validateUpdateProfile, updateProfile);
+router.put('/update-profile', protect, validateUpdateProfile, updateProfile); // ORPHANED: Reserved for student profile edit UI
 router.post('/forgot-password', authStrictLimiter, validateForgotPassword, forgotPassword);
 router.post('/reset-password/:token', authStrictLimiter, validateResetPassword, resetPassword);
 

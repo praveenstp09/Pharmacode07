@@ -136,13 +136,14 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Generate 7-day JWT access token
+// Generate JWT access token
 userSchema.methods.getSignedJwtToken = function () {
   if (!process.env.JWT_SECRET) {
     throw new Error('FATAL: JWT_SECRET environment variable is not defined');
   }
   return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET, {
-    expiresIn: '7d',
+    expiresIn: process.env.JWT_EXPIRE || '7d',
+    algorithm: 'HS256',
   });
 };
 

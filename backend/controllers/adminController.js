@@ -279,3 +279,31 @@ export const uploadFileEndpoint = async (req, res, next) => {
     next(error);
   }
 };
+
+// ======================== FULL ADMIN LISTINGS ========================
+export const getAdminTestSeries = async (req, res, next) => {
+  try {
+    const data = await adminService.getAllAdminTestSeries();
+    res.json({ success: true, count: data.length, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAdminSingleModels = async (req, res, next) => {
+  try {
+    const data = await adminService.getAllAdminSingleModels();
+    res.json({ success: true, count: data.length, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAdminNonPharma = async (req, res, next) => {
+  try {
+    const data = await adminService.getAllAdminNonPharma();
+    res.json({ success: true, count: data.length, data });
+  } catch (error) {
+    next(error);
+  }
+};

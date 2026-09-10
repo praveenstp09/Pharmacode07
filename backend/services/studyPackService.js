@@ -22,10 +22,11 @@ export const listStudyPacks = async ({ courseType, search, page = 1, limit = 12 
   }
 
   if (search && search.trim()) {
+    const cleanSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     query.$or = [
-      { title: { $regex: search.trim(), $options: 'i' } },
-      { description: { $regex: search.trim(), $options: 'i' } },
-      { scopeLabel: { $regex: search.trim(), $options: 'i' } },
+      { title: { $regex: cleanSearch, $options: 'i' } },
+      { description: { $regex: cleanSearch, $options: 'i' } },
+      { scopeLabel: { $regex: cleanSearch, $options: 'i' } },
     ];
   }
 

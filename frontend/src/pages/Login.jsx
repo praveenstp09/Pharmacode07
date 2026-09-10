@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ShieldCheck, Mail, Lock, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import VerifyEmailModal from '../components/auth/VerifyEmailModal';
+import SEO from '../components/common/SEO';
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -57,6 +58,11 @@ const Login = () => {
 
   return (
     <div className="min-h-[75vh] flex items-center justify-center px-4 py-12">
+      <SEO
+        title="Student Login"
+        description="Sign in to your PharmaCode07 account to access your enrolled test series, model papers, and performance analytics."
+        path="/login"
+      />
       <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 p-8 shadow-xl space-y-6">
         <div className="text-center space-y-2">
           <div className="w-16 h-16 rounded-2xl bg-white p-1 mx-auto shadow-md border border-slate-200 overflow-hidden flex items-center justify-center">

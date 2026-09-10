@@ -1,8 +1,14 @@
 import React from 'react';
+import SEO from '../components/common/SEO';
 
 export const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen py-12 max-w-4xl mx-auto px-4 sm:px-6 space-y-6 text-slate-800">
+      <SEO
+        title="Privacy Policy"
+        description="Privacy policy and data protection practices of PharmaCode07."
+        path="/privacy-policy"
+      />
       <h1 className="text-3xl font-extrabold text-slate-900 border-b pb-4">Privacy Policy</h1>
       <p className="text-sm text-slate-500">Last updated: August 2026</p>
       <div className="space-y-4 text-sm leading-relaxed">
@@ -35,6 +41,11 @@ export const PrivacyPolicy = () => {
 export const Terms = () => {
   return (
     <div className="min-h-screen py-12 max-w-4xl mx-auto px-4 sm:px-6 space-y-6 text-slate-800">
+      <SEO
+        title="Terms & Conditions"
+        description="Terms and conditions for utilizing PharmaCode07 test series, model papers, and educational services."
+        path="/terms"
+      />
       <h1 className="text-3xl font-extrabold text-slate-900 border-b pb-4">Terms & Conditions</h1>
       <p className="text-sm text-slate-500">Last updated: August 2026</p>
       <div className="space-y-4 text-sm leading-relaxed">
@@ -57,6 +68,11 @@ export const Terms = () => {
 export const RefundPolicy = () => {
   return (
     <div className="min-h-screen py-12 max-w-4xl mx-auto px-4 sm:px-6 space-y-6 text-slate-800">
+      <SEO
+        title="Refund & Cancellation Policy"
+        description="Refund and cancellation policy for digital products on PharmaCode07."
+        path="/refund-policy"
+      />
       <h1 className="text-3xl font-extrabold text-slate-900 border-b pb-4">
         Refund & Cancellation Policy
       </h1>

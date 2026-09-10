@@ -395,6 +395,8 @@ export const resetUserPassword = async (tokenParam, password) => {
   user.password = password;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
+  user.failedLoginAttempts = 0;
+  user.lockUntil = null;
   const refreshToken = user.generateRefreshToken();
   await user.save();
 

@@ -9,18 +9,22 @@ import {
   CheckCircle2,
   Play,
   Zap,
-  Layers,
   Eye,
-  Sparkles,
-  ArrowRight,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import CardSkeleton, { TableSkeleton } from '../components/common/SkeletonCard';
+import EmptyState from '../components/common/EmptyState';
+import TestSeriesCard from '../components/common/cards/TestSeriesCard';
+import StudyPackCard from '../components/common/cards/StudyPackCard';
+import SingleModelCard from '../components/common/cards/SingleModelCard';
+import NonPharmaCard from '../components/common/cards/NonPharmaCard';
 import confetti from 'canvas-confetti';
 import { downloadPdfToLocal } from '../utils/downloadHelper';
 
 const Dashboard = () => {
+  const { showToast } = useToast();
   const [searchParams] = useSearchParams();
   const [showSuccessAlert, setShowSuccessAlert] = useState(
     searchParams.get('status') === 'success'
@@ -122,6 +126,7 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error('Error fetching dashboard data', err);
+      showToast('Unable to load some dashboard packages. Please refresh the page.', 'error');
     } finally {
       setLoading(false);
     }
@@ -335,39 +340,12 @@ const Dashboard = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {purchasedSeries.map(item => (
-                <div
+                <TestSeriesCard
                   key={item._id}
-                  className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between group hover:border-blue-300 transition"
-                >
-                  <div className="relative h-40 bg-slate-100 overflow-hidden">
-                    <img
-                      src={item.thumbnail}
-                      alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent" />
-                    <div className="absolute bottom-3 left-3 text-white text-xs font-semibold">
-                      {item.totalTests} Tests {item.totalQuestions > 0 ? `• ${item.totalQuestions} Questions` : (item.totalPdfs ? `• ${item.totalPdfs} PDFs` : '')}
-                    </div>
-                  </div>
-
-                  <div className="p-5 flex-grow flex flex-col justify-between space-y-4">
-                    <div className="space-y-1">
-                      <h3 className="font-bold text-slate-900 text-base leading-snug">
-                        {item.title}
-                      </h3>
-                      <p className="text-xs text-slate-500 line-clamp-2">{item.description}</p>
-                    </div>
-
-                    <Link
-                      to={`/test-series/${item.slug}`}
-                      className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow transition flex items-center justify-center space-x-1.5"
-                    >
-                      <Play className="w-4 h-4 fill-white" />
-                      <span>Start / Resume Mock Tests</span>
-                    </Link>
-                  </div>
-                </div>
+                  item={item}
+                  isPurchased={true}
+                  variant="dashboard"
+                />
               ))}
             </div>
           )}
@@ -512,32 +490,12 @@ const Dashboard = () => {
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {purchasedPacks.map((pack) => (
-                      <div
+                      <StudyPackCard
                         key={pack._id}
-                        className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex items-center justify-between gap-4 hover:border-blue-300 transition"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                              {pack.courseType}
-                            </span>
-                            {pack.scopeLabel && (
-                              <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                                {pack.scopeLabel}
-                              </span>
-                            )}
-                          </div>
-                          <h4 className="font-bold text-slate-900 text-sm leading-snug">{pack.title}</h4>
-                          <p className="text-xs text-slate-500">{pack.totalPdfs || 0} PDFs Included • 365 Days Access</p>
-                        </div>
-
-                        <Link
-                          to={`/study-materials/${pack.slug}`}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition flex-shrink-0"
-                        >
-                          Open Notes →
-                        </Link>
-                      </div>
+                        pack={pack}
+                        isPurchased={true}
+                        variant="dashboard"
+                      />
                     ))}
                   </div>
                 </div>
@@ -613,93 +571,20 @@ const Dashboard = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {purchasedModels.map(model => (
-                <div
+                <SingleModelCard
                   key={model._id}
-                  className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between space-y-4 hover:border-blue-300 transition"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-extrabold rounded-md uppercase">
-                        {model.examType || 'Pharmacist'}
-                      </span>
-                      <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
-                        ✓ Enrolled
-                      </span>
-                    </div>
-
-                    <h3 className="font-bold text-slate-900 text-base leading-snug">
-                      {model.title}
-                    </h3>
-                    <p className="text-xs text-slate-500 line-clamp-2">{model.description}</p>
-
-                    <div className="flex items-center space-x-3 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                      <span>⏱️ {model.durationMinutes || 100} Mins</span>
-                      <span>📝 {model.totalQuestions || 100} MCQs</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex flex-col gap-2">
-                    {model.testPaperId && (
-                      <Link
-                        to={`/attempt/${model.testPaperId._id || model.testPaperId}`}
-                        className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow transition flex items-center justify-center space-x-1.5"
-                      >
-                        <Play className="w-4 h-4 fill-white" />
-                        <span>Start CBT Test</span>
-                      </Link>
-                    )}
-                  </div>
-                </div>
+                  paper={model}
+                  isPurchased={true}
+                  variant="dashboard"
+                />
               ))}
 
               {nonPharma.map(item => (
-                <div
+                <NonPharmaCard
                   key={item._id}
-                  className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-indigo-50 text-indigo-700">
-                        {item.section}
-                      </span>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800">
-                        ✓ Enrolled
-                      </span>
-                    </div>
-
-                    <h4 className="font-bold text-slate-900 text-base leading-snug">{item.title}</h4>
-                    {item.topic && (
-                      <p className="text-xs text-slate-500 font-medium">Topic: {item.topic}</p>
-                    )}
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100">
-                    {item.contentType === 'cbt' && item.testPaperId ? (
-                      <Link
-                        to={`/attempt/${item.testPaperId._id || item.testPaperId}`}
-                        className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center space-x-1.5"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-white" />
-                        <span>Start CBT Drill</span>
-                      </Link>
-                    ) : item.pdfUrl ? (
-                      <button
-                        onClick={() => {
-                          const safeName = (item.title || 'Pharmacode_Aptitude').replace(/[^a-zA-Z0-9_-]/g, '_');
-                          downloadPdfToLocal(item.pdfUrl, `${safeName}.pdf`);
-                        }}
-                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center space-x-1.5 cursor-pointer"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download PDF Notes</span>
-                      </button>
-                    ) : (
-                      <span className="text-xs text-slate-400 font-semibold block text-center">
-                        Resource Ready
-                      </span>
-                    )}
-                  </div>
-                </div>
+                  item={item}
+                  variant="dashboard"
+                />
               ))}
             </div>
           )}

@@ -25,7 +25,6 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('stats');
   const [stats, setStats] = useState(null);
   const [seriesList, setSeriesList] = useState([]);
-  const [materialsList, setMaterialsList] = useState([]);
   const [singleModelsList, setSingleModelsList] = useState([]);
   const [nonPharmaList, setNonPharmaList] = useState([]);
   const [coupons, setCoupons] = useState([]);
@@ -64,24 +63,19 @@ const AdminDashboard = () => {
       }
 
       if (activeTab === 'series') {
-        const sRes = await api.get('/test-series');
+        const sRes = await api.get('/admin/test-series');
         if (sRes.data.success) {
           setSeriesList(sRes.data.data);
         }
       }
 
-      if (activeTab === 'materials') {
-        const mRes = await api.get('/materials');
-        if (mRes.data.success) setMaterialsList(mRes.data.data);
-      }
-
       if (activeTab === 'singleModels') {
-        const smRes = await api.get('/single-models');
+        const smRes = await api.get('/admin/single-models');
         if (smRes.data.success) setSingleModelsList(smRes.data.data);
       }
 
       if (activeTab === 'nonPharma') {
-        const npRes = await api.get('/non-pharma');
+        const npRes = await api.get('/admin/non-pharma');
         if (npRes.data.success) setNonPharmaList(npRes.data.data);
       }
 
@@ -106,6 +100,7 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       console.error('Failed to load admin data:', err);
+      showToast('Failed to load admin data. Please check network connection.', 'error');
     } finally {
       setLoading(false);
     }

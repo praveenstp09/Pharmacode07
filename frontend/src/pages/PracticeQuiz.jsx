@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   HelpCircle,
   CheckCircle2,
@@ -9,9 +9,14 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
+import HeroBanner from '../components/common/HeroBanner';
+import FilterPills from '../components/common/FilterPills';
+import EmptyState from '../components/common/EmptyState';
+import SEO from '../components/common/SEO';
 
 const PracticeQuiz = () => {
-  const navigate = useNavigate();
+  const { showToast } = useToast();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubject, setSelectedSubject] = useState('All');
@@ -43,33 +48,34 @@ const PracticeQuiz = () => {
     setScore(0);
     setAnsweredCount(0);
     try {
-      const res = await api.get(`/test-series/practice/mcqs?subject=${selectedSubject}&limit=25`);
+      const res = await api.get(`/test-series/practice/mcqs?subject=${encodeURIComponent(selectedSubject)}&limit=25`);
       if (res.data.success) {
         setQuestions(res.data.data);
       }
     } catch (err) {
       console.error('Failed to fetch practice MCQs', err);
+      showToast('Unable to load practice questions. Please check your connection.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOptionClick = optIdx => {
-    if (userSelectedOpt !== null) return; // Prevent changing after answered
+  const handleOptionClick = (optIdx) => {
+    if (userSelectedOpt !== null) return;
 
     setUserSelectedOpt(optIdx);
     setShowExplanation(true);
-    setAnsweredCount(prev => prev + 1);
+    setAnsweredCount((prev) => prev + 1);
 
     const currentQ = questions[currentIndex];
     if (optIdx === currentQ.correctOptionIndex) {
-      setScore(prev => prev + 1);
+      setScore((prev) => prev + 1);
     }
   };
 
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => prev + 1);
       setUserSelectedOpt(null);
       setShowExplanation(false);
     }
@@ -80,36 +86,25 @@ const PracticeQuiz = () => {
 
   return (
     <div className="min-h-screen py-8 max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
+      <SEO
+        title="Free Pharmacy Practice Quiz & Subject-Wise MCQs"
+        description="Practice free pharmacy MCQs with instant explanations. Test your Pharmacology, Pharmaceutics, Jurisprudence, and Pharmacognosy knowledge."
+        path="/practice"
+      />
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 rounded-3xl p-6 sm:p-10 text-white shadow-xl space-y-3 text-center sm:text-left">
-        <div className="inline-flex items-center space-x-2 bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-          <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-          <span>100% Free Daily Practice</span>
+      <HeroBanner
+        pill="100% Free Daily Practice"
+        title="Subject-Wise Pharmacy MCQ Challenge"
+        subtitle="Get instant feedback with full rationales for every question. Test your knowledge without limits!"
+      >
+        <div className="pt-2">
+          <FilterPills
+            items={subjects}
+            activeItem={selectedSubject}
+            onSelect={setSelectedSubject}
+          />
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold">
-          Subject-Wise Pharmacy MCQ Challenge
-        </h1>
-        <p className="text-blue-100 text-xs sm:text-sm">
-          Get instant feedback with full rationales for every question. Test your knowledge without limits!
-        </p>
-
-        {/* Subject Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pt-3 pb-1 scrollbar-none">
-          {subjects.map(subj => (
-            <button
-              key={subj}
-              onClick={() => setSelectedSubject(subj)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
-                selectedSubject === subj
-                  ? 'bg-white text-blue-900 shadow'
-                  : 'bg-white/15 text-white hover:bg-white/25'
-              }`}
-            >
-              {subj}
-            </button>
-          ))}
-        </div>
-      </div>
+      </HeroBanner>
 
       {loading ? (
         <div className="text-center py-20">
@@ -117,15 +112,13 @@ const PracticeQuiz = () => {
           <p className="text-slate-500 font-semibold text-sm">Loading practice questions...</p>
         </div>
       ) : questions.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-3">
-          <p className="text-slate-600 font-medium">No questions found for this subject.</p>
-          <button
-            onClick={() => setSelectedSubject('All')}
-            className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-lg"
-          >
-            Show All Subjects
-          </button>
-        </div>
+        <EmptyState
+          icon={HelpCircle}
+          title="No questions found for this subject"
+          subtitle="Try selecting a different subject or reset to show all subjects."
+          actionText="Show All Subjects"
+          onAction={() => setSelectedSubject('All')}
+        />
       ) : (
         <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
           {/* Progress & Live Score */}
@@ -138,8 +131,9 @@ const PracticeQuiz = () => {
                 Score: {score} / {answeredCount}
               </span>
               <button
+                type="button"
                 onClick={fetchPracticeQuestions}
-                className="flex items-center space-x-1 text-slate-500 hover:text-blue-600 p-1"
+                className="flex items-center space-x-1 text-slate-500 hover:text-blue-600 p-1 cursor-pointer"
                 title="Reset Quiz"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -182,7 +176,7 @@ const PracticeQuiz = () => {
                   type="button"
                   onClick={() => handleOptionClick(idx)}
                   disabled={userSelectedOpt !== null}
-                  className={`w-full text-left p-4 rounded-xl border-2 transition flex items-center justify-between ${optStyle}`}
+                  className={`w-full text-left p-4 rounded-xl border-2 transition flex items-center justify-between ${optStyle} cursor-pointer`}
                 >
                   <div className="flex items-center space-x-3">
                     <span className="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
@@ -241,6 +235,7 @@ const PracticeQuiz = () => {
                   </div>
                   <div className="flex items-center justify-center gap-3 pt-2">
                     <button
+                      type="button"
                       onClick={fetchPracticeQuestions}
                       className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition cursor-pointer"
                     >

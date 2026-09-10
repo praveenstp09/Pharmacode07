@@ -16,7 +16,7 @@ import QuestionPalette from '../components/test/QuestionPalette';
 const TestAttemptScreen = () => {
   const { paperId } = useParams();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { showToast } = useToast();
 
   const [paper, setPaper] = useState(null);

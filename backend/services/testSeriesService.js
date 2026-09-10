@@ -339,7 +339,27 @@ export const getPaperForTestAttempt = async (paperId, currentUser) => {
   }
 
   if (!hasAccess && paper.parentType === 'non_pharma') {
-    hasAccess = true;
+    const nonPharma = await NonPharmaResource.findOne({
+      $or: [{ testPaperId: paper._id }, { _id: paper.parentId }],
+    });
+
+    if (nonPharma) {
+      if (nonPharma.isFree) {
+        hasAccess = true;
+      } else {
+        const isPurchased = user.purchasedNonPharma?.some(
+          id => id.toString() === nonPharma._id.toString()
+        );
+        const purchase = await Purchase.findOne({
+          userId: user._id,
+          itemType: 'NonPharmaResource',
+          itemId: nonPharma._id,
+          expiresAt: { $gt: new Date() },
+          isActive: true,
+        });
+        if (isPurchased || purchase) hasAccess = true;
+      }
+    }
   }
 
   if (!hasAccess) {
@@ -406,13 +426,58 @@ export const getPaperForTestAttempt = async (paperId, currentUser) => {
   };
 };
 
-export const samplePracticeMCQs = async (subject, limit = 20) => {
-  const sampleLimit = Math.min(Math.max(1, parseInt(limit) || 20), 100);
+export const samplePracticeMCQs = async (subject, limit = 20, currentUser = null) => {
+  const sampleLimit = Math.min(Math.max(1, parseInt(limit) || 20), 25);
+
+  let user = null;
+  if (currentUser?.id) {
+    try {
+      user = await User.findById(currentUser.id);
+    } catch (e) {}
+  }
+  const isAdmin = user?.role === 'admin';
 
   const pipeline = [
     { $match: { published: true } },
-    { $unwind: '$questions' },
   ];
+
+  if (!isAdmin) {
+    // Restrict sampling so paid questions cannot be scraped by unauthenticated requests
+    const [freeSeries, freeFolderItems, freeSingleModels, freeNonPharma] = await Promise.all([
+      TestSeries.find({ isFree: true, published: true }).select('_id'),
+      FolderItem.find({ isFreeDemo: true, published: true }).select('testPaperId'),
+      SingleModelPaper.find({ isFree: true, published: true }).select('testPaperId'),
+      NonPharmaResource.find({ isFree: true, published: true }).select('testPaperId'),
+    ]);
+
+    const allowedSeriesIds = freeSeries.map(s => s._id);
+    if (user?.purchasedTests?.length) {
+      allowedSeriesIds.push(...user.purchasedTests);
+    }
+
+    const explicitAllowedPaperIds = [
+      ...freeFolderItems.map(f => f.testPaperId).filter(Boolean),
+      ...freeSingleModels.map(s => s.testPaperId).filter(Boolean),
+      ...freeNonPharma.map(n => n.testPaperId).filter(Boolean),
+    ];
+
+    if (user?.purchasedSingleModels?.length) {
+      const purchasedSingle = await SingleModelPaper.find({ _id: { $in: user.purchasedSingleModels } }).select('testPaperId');
+      explicitAllowedPaperIds.push(...purchasedSingle.map(p => p.testPaperId).filter(Boolean));
+    }
+    if (user?.purchasedNonPharma?.length) {
+      const purchasedNonPharma = await NonPharmaResource.find({ _id: { $in: user.purchasedNonPharma } }).select('testPaperId');
+      explicitAllowedPaperIds.push(...purchasedNonPharma.map(p => p.testPaperId).filter(Boolean));
+    }
+
+    pipeline[0].$match.$or = [
+      { testSeriesId: { $in: allowedSeriesIds } },
+      { _id: { $in: explicitAllowedPaperIds } },
+      { paperNumber: 1 },
+    ];
+  }
+
+  pipeline.push({ $unwind: '$questions' });
 
   if (subject && subject !== 'All') {
     const cleanSubject = String(subject).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Mail, MapPin, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 import { useToast } from '../context/ToastContext';
+import SEO from '../components/common/SEO';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -39,6 +40,11 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen py-12 max-w-5xl mx-auto px-4 sm:px-6 space-y-12">
+      <SEO
+        title="Contact Us & Support"
+        description="Have questions about mock test series, study materials, or payments? Contact PharmaCode07 support team."
+        path="/contact"
+      />
       <div className="text-center max-w-2xl mx-auto space-y-3">
         <span className="text-blue-600 font-extrabold text-xs tracking-wider uppercase">
           Support & Inquiries

@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Download, FileText } from 'lucide-react';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
+import HeroBanner from '../components/common/HeroBanner';
+import FilterPills from '../components/common/FilterPills';
+import EmptyState from '../components/common/EmptyState';
+import SEO from '../components/common/SEO';
 
 const PYQs = () => {
+  const { showToast } = useToast();
   const [pyqs, setPyqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedExam, setSelectedExam] = useState('All');
@@ -25,6 +31,7 @@ const PYQs = () => {
       }
     } catch (err) {
       console.error('Failed to load PYQs', err);
+      showToast('Unable to load previous year question papers. Please check your connection.', 'error');
     } finally {
       setLoading(false);
     }
@@ -32,33 +39,24 @@ const PYQs = () => {
 
   return (
     <div className="min-h-screen py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-8 sm:p-12 text-white shadow-lg space-y-3">
-        <span className="bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-          Official Solved Papers
-        </span>
-        <h1 className="text-3xl sm:text-4xl font-extrabold">
-          Pharmacist Previous Year Question Papers (PYQs)
-        </h1>
-        <p className="text-blue-100 text-sm sm:text-base max-w-2xl">
-          Download genuine past exam papers (2020–2025) with detailed answer keys and explanations.
-        </p>
-
-        <div className="flex items-center gap-2 pt-2 overflow-x-auto scrollbar-none">
-          {exams.map(e => (
-            <button
-              key={e}
-              onClick={() => setSelectedExam(e)}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${
-                selectedExam === e
-                  ? 'bg-white text-blue-900 shadow'
-                  : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
-            >
-              {e}
-            </button>
-          ))}
+      <SEO
+        title="Pharmacist Previous Year Question Papers (PYQs)"
+        description="Download genuine past pharmacist exam papers (2020–2025) for GSSSB, UPSSSC, RRB, AIIMS, and GPAT with complete answer keys."
+        path="/pyqs"
+      />
+      <HeroBanner
+        pill="Official Solved Papers"
+        title="Pharmacist Previous Year Question Papers (PYQs)"
+        subtitle="Download genuine past exam papers (2020–2025) with detailed answer keys and explanations."
+      >
+        <div className="pt-2">
+          <FilterPills
+            items={exams}
+            activeItem={selectedExam}
+            onSelect={setSelectedExam}
+          />
         </div>
-      </div>
+      </HeroBanner>
 
       {loading ? (
         <div className="text-center py-20">
@@ -66,14 +64,16 @@ const PYQs = () => {
           <p className="text-slate-500 font-semibold text-sm">Loading solved papers...</p>
         </div>
       ) : pyqs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
-          <FileText className="w-12 h-12 text-slate-400 mx-auto" />
-          <h3 className="text-base font-bold text-slate-800">No PYQ papers found</h3>
-          <p className="text-xs text-slate-500">Check back later or select "All" from exam tabs.</p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="No PYQ papers found"
+          subtitle='Check back later or select "All" from exam tabs.'
+          actionText="View All Exams"
+          onAction={() => setSelectedExam('All')}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {pyqs.map(paper => (
+          {pyqs.map((paper) => (
             <div
               key={paper._id}
               className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm hover:border-blue-300 transition flex items-center justify-between gap-4"

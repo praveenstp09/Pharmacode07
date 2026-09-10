@@ -2,23 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   FileCheck,
-  BookOpen,
   Clock,
-  Award,
   CheckCircle2,
   Lock,
   Play,
   ShoppingCart,
   Zap,
-  ArrowRight,
   ShieldCheck,
   ChevronRight,
   FileText,
   Download,
   Eye,
   Layers,
-  Sparkles,
-  HelpCircle,
   RotateCcw,
 } from 'lucide-react';
 import api from '../services/api';
@@ -26,6 +21,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import PdfViewerModal from '../components/common/PdfViewerModal';
+import SEO from '../components/common/SEO';
 import { downloadPdfToLocal } from '../utils/downloadHelper';
 
 const TestSeriesDetail = () => {
@@ -106,6 +102,12 @@ const TestSeriesDetail = () => {
 
   return (
     <div className="min-h-screen py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      <SEO
+        title={series?.title}
+        description={series?.description || 'Crack pharmacist examinations with authentic CBT mock test papers.'}
+        path={`/test-series/${slug}`}
+        image={series?.thumbnail || '/logo.jpg'}
+      />
       {/* Breadcrumb */}
       <div className="flex items-center space-x-2 text-xs font-semibold text-slate-500">
         <Link to="/" className="hover:text-blue-600">Home</Link>

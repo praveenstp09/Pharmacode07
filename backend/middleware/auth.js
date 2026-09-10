@@ -11,7 +11,7 @@ export const protect = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
 
       try {
         req.user = await User.findById(decoded.id).select('-password');
@@ -22,6 +22,15 @@ export const protect = async (req, res, next) => {
       
       if (!req.user) {
         return res.status(401).json({ success: false, message: 'User not found with this token' });
+      }
+
+      // Reject if account is temporarily locked
+      if (req.user.lockUntil && req.user.lockUntil > Date.now()) {
+        const remainingMinutes = Math.ceil((req.user.lockUntil.getTime() - Date.now()) / (60 * 1000));
+        return res.status(403).json({
+          success: false,
+          message: `Account is temporarily locked due to multiple failed login attempts. Please retry in ${remainingMinutes} minute(s).`,
+        });
       }
 
       next();
@@ -53,7 +62,7 @@ export const optionalAuth = async (req, res, next) => {
   ) {
     try {
       const token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
       req.user = await User.findById(decoded.id).select('-password');
     } catch (error) {
       // Ignore invalid token and continue as guest

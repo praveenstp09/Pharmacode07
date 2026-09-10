@@ -520,3 +520,22 @@ export const processFileUpload = async (file, folderName) => {
   const folder = folderName ? String(folderName).replace(/[^a-zA-Z0-9_-]/g, '') : 'pharmacode_docs';
   return await uploadToCloudinaryOrLocal(file, folder);
 };
+
+// ======================== FULL ADMIN LISTINGS (INCLUDES UNPUBLISHED) ========================
+export const getAllAdminTestSeries = async () => {
+  return await TestSeries.find().sort({ createdAt: -1 }).lean();
+};
+
+export const getAllAdminSingleModels = async () => {
+  return await SingleModelPaper.find()
+    .populate('testPaperId', 'durationMinutes totalMarks totalQuestions positiveMarks negativeMarks difficulty')
+    .sort({ createdAt: -1 })
+    .lean();
+};
+
+export const getAllAdminNonPharma = async () => {
+  return await NonPharmaResource.find()
+    .populate('testPaperId', 'durationMinutes totalMarks totalQuestions positiveMarks negativeMarks difficulty')
+    .sort({ createdAt: -1 })
+    .lean();
+};

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ShieldCheck, User, Mail, Phone, Lock, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Phone, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import VerifyEmailModal from '../components/auth/VerifyEmailModal';
+import SEO from '../components/common/SEO';
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -73,6 +74,11 @@ const Register = () => {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+      <SEO
+        title="Student Registration"
+        description="Create your free student account on PharmaCode07 to prepare for GSSSB, UPSSSC, RRB, AIIMS, and GPAT pharmacy examinations."
+        path="/register"
+      />
       <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 p-8 shadow-xl space-y-6">
         <div className="text-center space-y-2">
           <div className="w-16 h-16 rounded-2xl bg-white p-1 mx-auto shadow-md border border-slate-200 overflow-hidden flex items-center justify-center">

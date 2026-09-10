@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Download, ExternalLink, FileText, AlertCircle } from 'lucide-react';
+import { X, Download, FileText } from 'lucide-react';
 import api from '../../services/api';
 import { downloadPdfToLocal } from '../../utils/downloadHelper';
 

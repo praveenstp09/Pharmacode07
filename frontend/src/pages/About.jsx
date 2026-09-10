@@ -1,10 +1,16 @@
 import React from 'react';
-import { ShieldCheck, Target, Award, Heart, BookOpen, Users, CheckCircle2 } from 'lucide-react';
+import { Target, Award } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import SEO from '../components/common/SEO';
 
 const About = () => {
   return (
     <div className="min-h-screen py-12 max-w-5xl mx-auto px-4 sm:px-6 space-y-12">
+      <SEO
+        title="About Us"
+        description="Learn about PharmaCode07, India's dedicated examination preparation and test series platform for competitive pharmacist aspirants."
+        path="/about"
+      />
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <img
           src="/logo.jpg"

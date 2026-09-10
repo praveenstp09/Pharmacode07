@@ -424,7 +424,6 @@ const AdminStudyPackTab = () => {
                   <option value="B.Pharm">🎓 B.Pharm</option>
                   <option value="D.Pharm">💊 D.Pharm</option>
                   <option value="QuickRevision">⚡ Quick Revision</option>
-                  {/* <option value="Mixed">📦 Special Bundle</option> */}
                 </select>
               </div>
 

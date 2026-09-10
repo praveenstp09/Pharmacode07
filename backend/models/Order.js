@@ -18,6 +18,10 @@ const orderItemSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  validityDays: {
+    type: Number,
+    default: 365,
+  },
 });
 
 const orderSchema = new mongoose.Schema(

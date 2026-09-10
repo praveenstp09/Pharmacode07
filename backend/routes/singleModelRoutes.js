@@ -12,7 +12,7 @@ const router = express.Router();
 
 // Public routes (with optional authentication)
 router.get('/', optionalAuth, getSingleModelPapers);
-router.get('/:slug', optionalAuth, getSingleModelPaperBySlug);
+router.get('/:slug', optionalAuth, getSingleModelPaperBySlug); // ORPHANED: Reserved for direct deep-linking by slug
 
 // Admin-only routes
 router.post('/', protect, adminOnly, createSingleModelPaper);

@@ -38,7 +38,11 @@ const connectDB = async () => {
     console.log(`✅ MongoDB Connected to: ${conn.connection.host} (Database: ${conn.connection.name})`);
     return conn;
   } catch (error) {
-    console.warn(`⚠️ MongoDB Connection Error (${error.message}). Starting built-in MongoDB engine...`);
+    if (process.env.NODE_ENV === 'production') {
+      console.error(`❌ MongoDB Production Connection Error: ${error.message}`);
+      throw error;
+    }
+    console.warn(`⚠️ MongoDB Connection Error (${error.message}). Starting built-in MongoDB engine for development...`);
     try {
       const { MongoMemoryServer } = await import('mongodb-memory-server');
       mongod = await MongoMemoryServer.create({

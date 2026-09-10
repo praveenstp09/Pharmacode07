@@ -5,8 +5,6 @@ import {
   Tag,
   ArrowRight,
   ShoppingCart,
-  ShieldCheck,
-  CheckCircle2,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';

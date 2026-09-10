@@ -40,7 +40,7 @@ export const getTestPaperForAttempt = async (req, res, next) => {
 
 export const getPracticeMCQs = async (req, res, next) => {
   try {
-    const selected = await testSeriesService.samplePracticeMCQs(req.query.subject, req.query.limit);
+    const selected = await testSeriesService.samplePracticeMCQs(req.query.subject, req.query.limit, req.user);
     res.json({
       success: true,
       count: selected.length,

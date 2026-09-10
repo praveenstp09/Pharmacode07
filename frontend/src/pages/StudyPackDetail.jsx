@@ -1,26 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
-  FileText,
   Download,
   Eye,
   Lock,
   CheckCircle2,
   ShoppingCart,
   Zap,
-  ArrowLeft,
   BookOpen,
-  Calendar,
   Layers,
-  Sparkles,
   ChevronRight,
-  ShieldCheck,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import PdfViewerModal from '../components/common/PdfViewerModal';
+import SEO from '../components/common/SEO';
 import { downloadPdfToLocal } from '../utils/downloadHelper';
 
 const StudyPackDetail = () => {
@@ -177,6 +173,12 @@ const StudyPackDetail = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 py-8">
+      <SEO
+        title={pack?.title}
+        description={pack?.description || 'Download comprehensive pharmacy study materials and PDF packages.'}
+        path={`/study-materials/${slug}`}
+        image={pack?.thumbnail || '/logo.jpg'}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* Breadcrumb Navigation */}
         <div className="flex items-center space-x-2 text-xs font-semibold text-slate-500">
@@ -231,10 +233,6 @@ const StudyPackDetail = () => {
                     <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 1</span>
                     <span className="font-bold text-sm sm:text-base text-white">{folderNames.length || 1} Semesters</span>
                   </div>
-                  {/* <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
-                    <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 2</span>
-                    <span className="font-bold text-sm sm:text-base text-white">{allUniqueSubjects.length || (items.length > 0 ? 1 : 0)} Subject Modules</span>
-                  </div> */}
                   <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                     <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 3</span>
                     <span className="font-bold text-sm sm:text-base text-white">{items.length || pack.totalPdfs || 0} PDF Documents</span>

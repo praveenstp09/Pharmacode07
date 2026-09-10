@@ -28,6 +28,9 @@ import {
   updateFolderItem,
   deleteFolderItem,
   uploadFileEndpoint,
+  getAdminTestSeries,
+  getAdminSingleModels,
+  getAdminNonPharma,
 } from '../controllers/adminController.js';
 import {
   adminGetAllPacks,
@@ -50,6 +53,11 @@ router.use(protect, adminOnly);
 // Stats
 router.get('/stats', getAdminStats);
 
+// Full Admin Catalog Listings (includes draft & unpublished items)
+router.get('/test-series', getAdminTestSeries);
+router.get('/single-models', getAdminSingleModels);
+router.get('/non-pharma', getAdminNonPharma);
+
 // Test Series CRUD
 router.post('/test-series', createTestSeries);
 router.put('/test-series/:id', updateTestSeries);
@@ -58,13 +66,13 @@ router.delete('/test-series/:id', deleteTestSeries);
 // Test Series Folder Items
 router.get('/test-series/:seriesId/folders', getFolderItemsForSeries);
 router.post('/test-series/:seriesId/folders', addFolderItemToSeries);
-router.put('/folders/:id', updateFolderItem);
+router.put('/folders/:id', updateFolderItem); // ORPHANED: Reserved for direct folder item inline updating
 router.delete('/folders/:id', deleteFolderItem);
 
 // Direct File Upload (PDFs / Images via Cloudinary or Local)
 router.post('/upload', upload.single('file'), uploadFileEndpoint);
 
-// Test Papers CRUD
+// Test Papers CRUD (ORPHANED: Superseded by folder items architecture & bulk question parser)
 router.get('/test-series/:seriesId/papers', getAdminPapersForSeries);
 router.post('/test-papers', createTestPaper);
 router.put('/test-papers/:id', updateTestPaper);
@@ -83,7 +91,7 @@ router.put('/study-packs/:id', adminUpdatePack);
 router.delete('/study-packs/:id', adminDeletePack);
 router.get('/study-packs/:packId/items', adminGetPackItems);
 router.post('/study-packs/:packId/items', adminAddItemToPack);
-router.put('/study-pack-items/:id', adminUpdateItem);
+router.put('/study-pack-items/:id', adminUpdateItem); // ORPHANED: Reserved for study pack item inline updating
 router.delete('/study-pack-items/:id', adminDeleteItem);
 
 // Coupons CRUD
@@ -95,7 +103,7 @@ router.delete('/coupons/:id', deleteCoupon);
 router.get('/orders', getAllOrders);
 router.get('/students', getAllStudents);
 
-// Notifications & Contacts
+// Notifications (ORPHANED: Reserved for future global banner notifications)
 router.get('/notifications', getNotifications);
 router.post('/notifications', createNotification);
 router.delete('/notifications/:id', deleteNotification);

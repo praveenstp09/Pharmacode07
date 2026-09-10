@@ -15,10 +15,10 @@ export const enrollUserInItems = async (userId, items, orderId = null) => {
   const user = await User.findById(userId);
   if (!user) return;
 
-  const oneYearFromNow = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-
   for (const item of items) {
     const itemIdStr = (item.itemId || item._id || item.id).toString();
+    const days = Number(item.validityDays) || 365;
+    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
     if (item.itemType === 'TestSeries') {
       user.purchasedTests = user.purchasedTests || [];
@@ -55,7 +55,7 @@ export const enrollUserInItems = async (userId, items, orderId = null) => {
         itemId: item.itemId,
         orderId,
         purchasedAt: new Date(),
-        expiresAt: oneYearFromNow,
+        expiresAt,
         isActive: true,
       },
       { upsert: true, new: true }
@@ -138,6 +138,7 @@ export const initiateCheckoutOrder = async (currentUser, { items, couponCode }) 
       itemType,
       title: dbItem.title,
       price: itemPrice,
+      validityDays: dbItem.validityDays || 365,
     });
   }
 
@@ -147,8 +148,13 @@ export const initiateCheckoutOrder = async (currentUser, { items, couponCode }) 
 
   if (couponCode) {
     const cleanCode = String(couponCode).trim().toUpperCase();
-    const coupon = await Coupon.findOne({ code: cleanCode, isActive: true });
-    if (coupon && new Date() <= new Date(coupon.expiryDate) && coupon.usedCount < coupon.usageLimit) {
+    const coupon = await Coupon.findOne({
+      code: cleanCode,
+      isActive: true,
+      expiryDate: { $gte: new Date() },
+      $expr: { $lt: ['$usedCount', '$usageLimit'] },
+    });
+    if (coupon) {
       if (subtotal >= coupon.minOrderValue) {
         let discount = (subtotal * coupon.discountPercent) / 100;
         if (coupon.maxDiscount && discount > coupon.maxDiscount) {
@@ -250,20 +256,42 @@ export const verifyPaymentSignature = async (currentUser, { razorpay_order_id, r
     throw new AppError('Payment verification failed: Invalid signature', 400);
   }
 
-  order.paymentId = razorpay_payment_id;
-  order.razorpaySignature = razorpay_signature;
-  order.paymentStatus = 'completed';
-  await order.save();
+  // Atomic state transition from 'pending' -> 'completed' prevents concurrent double enrollment
+  const updatedOrder = await Order.findOneAndUpdate(
+    { orderId: razorpay_order_id, paymentStatus: 'pending' },
+    {
+      $set: {
+        paymentId: razorpay_payment_id,
+        razorpaySignature: razorpay_signature,
+        paymentStatus: 'completed',
+      },
+    },
+    { new: true }
+  );
 
-  await enrollUserInItems(order.userId, order.items, order._id);
+  if (!updatedOrder) {
+    const existing = await Order.findOne({ orderId: razorpay_order_id });
+    if (existing && existing.paymentStatus === 'completed') {
+      return {
+        message: 'Payment already verified and packages are active',
+        orderId: existing.orderId,
+      };
+    }
+    throw new AppError('Order could not be verified or is already completed', 400);
+  }
 
-  if (order.couponApplied) {
-    await Coupon.findOneAndUpdate({ code: order.couponApplied }, { $inc: { usedCount: 1 } });
+  await enrollUserInItems(updatedOrder.userId, updatedOrder.items, updatedOrder._id);
+
+  if (updatedOrder.couponApplied) {
+    await Coupon.findOneAndUpdate(
+      { code: updatedOrder.couponApplied, $expr: { $lt: ['$usedCount', '$usageLimit'] } },
+      { $inc: { usedCount: 1 } }
+    );
   }
 
   return {
     message: 'Payment verified and items unlocked successfully',
-    orderId: order.orderId,
+    orderId: updatedOrder.orderId,
   };
 };
 
@@ -284,20 +312,38 @@ export const processFreeEnrollment = async (currentUser, { orderId }) => {
     throw new AppError('This order requires online payment via Razorpay', 400);
   }
 
-  order.paymentId = `FREE_ENROLL_${Date.now()}`;
-  order.paymentStatus = 'completed';
-  order.paymentMethod = 'free';
-  await order.save();
+  // Atomic update to avoid concurrent free checkout race conditions
+  const updatedOrder = await Order.findOneAndUpdate(
+    { orderId, userId: currentUser.id, paymentStatus: 'pending' },
+    {
+      $set: {
+        paymentId: `FREE_ENROLL_${Date.now()}`,
+        paymentStatus: 'completed',
+        paymentMethod: 'free',
+      },
+    },
+    { new: true }
+  );
 
-  await enrollUserInItems(order.userId, order.items, order._id);
+  if (!updatedOrder) {
+    return {
+      message: 'Order is already completed',
+      orderId: order.orderId,
+    };
+  }
 
-  if (order.couponApplied) {
-    await Coupon.findOneAndUpdate({ code: order.couponApplied }, { $inc: { usedCount: 1 } });
+  await enrollUserInItems(updatedOrder.userId, updatedOrder.items, updatedOrder._id);
+
+  if (updatedOrder.couponApplied) {
+    await Coupon.findOneAndUpdate(
+      { code: updatedOrder.couponApplied, $expr: { $lt: ['$usedCount', '$usageLimit'] } },
+      { $inc: { usedCount: 1 } }
+    );
   }
 
   return {
     message: 'Free enrollment successful! Packages unlocked in your account.',
-    orderId: order.orderId,
+    orderId: updatedOrder.orderId,
   };
 };
 
@@ -333,16 +379,25 @@ export const processWebhookEvent = async (req) => {
     const razorpayOrderId = paymentEntity?.order_id || event.payload?.order?.entity?.id;
 
     if (razorpayOrderId) {
-      const order = await Order.findOne({ orderId: razorpayOrderId });
-      if (order && order.paymentStatus !== 'completed') {
-        order.paymentId = paymentEntity?.id || `WH_${Date.now()}`;
-        order.paymentStatus = 'completed';
-        await order.save();
+      const updatedOrder = await Order.findOneAndUpdate(
+        { orderId: razorpayOrderId, paymentStatus: 'pending' },
+        {
+          $set: {
+            paymentId: paymentEntity?.id || `WH_${Date.now()}`,
+            paymentStatus: 'completed',
+          },
+        },
+        { new: true }
+      );
 
-        await enrollUserInItems(order.userId, order.items, order._id);
+      if (updatedOrder) {
+        await enrollUserInItems(updatedOrder.userId, updatedOrder.items, updatedOrder._id);
 
-        if (order.couponApplied) {
-          await Coupon.findOneAndUpdate({ code: order.couponApplied }, { $inc: { usedCount: 1 } });
+        if (updatedOrder.couponApplied) {
+          await Coupon.findOneAndUpdate(
+            { code: updatedOrder.couponApplied, $expr: { $lt: ['$usedCount', '$usageLimit'] } },
+            { $inc: { usedCount: 1 } }
+          );
         }
       }
     }

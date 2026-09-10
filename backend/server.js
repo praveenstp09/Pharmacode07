@@ -74,24 +74,33 @@ const allowedOrigins = [
   'https://pharmacode07.onrender.com',
   'https://pharmacode07-arxj.onrender.com',
   'https://pharmacode-frontend.onrender.com',
-  'https://wrhwvdsl-5173.inc1.devtunnels.ms',
   process.env.CLIENT_URL,
+  process.env.FRONTEND_URL,
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (such as mobile apps or server-to-server)
       if (!origin) return callback(null, true);
-      const isAllowed =
-        allowedOrigins.includes(origin) ||
-        origin.endsWith('.devtunnels.ms') ||
-        origin.endsWith('.onrender.com') ||
-        process.env.NODE_ENV !== 'production';
 
-      if (isAllowed) {
+      // Check strict allowed origins whitelist
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(new Error('Blocked by CORS policy'));
+
+      // During non-production development only, allow local and devtunnels
+      if (process.env.NODE_ENV !== 'production') {
+        if (
+          origin.includes('localhost') ||
+          origin.includes('127.0.0.1') ||
+          origin.endsWith('.devtunnels.ms')
+        ) {
+          return callback(null, true);
+        }
+      }
+
+      return callback(new Error('Blocked by CORS policy: Origin not allowed'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -116,8 +125,25 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
-// Static folder for uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Static folder for uploads - protect document/PDF files from direct unauthorized public scraping
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    const ext = path.extname(req.path).toLowerCase();
+    const publicImageExts = ['.jpg', '.jpeg', '.png', '.webp', '.svg', '.gif', '.ico'];
+
+    if (publicImageExts.includes(ext)) {
+      return next();
+    }
+
+    // Direct static scraping of PDF/documents is forbidden
+    return res.status(403).json({
+      success: false,
+      message: 'Direct static access to documents is forbidden. Access files through the authenticated platform.',
+    });
+  },
+  express.static(path.join(__dirname, 'uploads'))
+);
 
 // Root Route - Pure Backend API Information
 app.get('/', (req, res) => {
