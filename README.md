@@ -14,14 +14,14 @@
 
 ## 📌 Overview
 
-**PharmaCode07** bridges the gap between traditional pharmacy education and competitive government recruitment exams. It delivers a high-fidelity Computer-Based Test (CBT) environment resembling official TCS-iON / NTA interfaces, combined with organized digital notes, previous year question papers (PYQs), and non-technical preparation modules.
+**PharmaCode07** bridges the gap between traditional pharmacy education and competitive government recruitment exams. It delivers a high-fidelity Computer-Based Test (CBT) environment modeled after official state and national pharmacist recruitment examinations, combined with organized PCI curriculum study notes, solved Previous Year Question papers (PYQs), and targeted non-technical revision modules.
 
 ---
 
 ## 🚀 Core Features
 
 ### 1. 🖥️ Interactive CBT Exam Simulator
-- **Standardized NTA/TCS Layout**: Color-coded question states (*Answered*, *Not Answered*, *Marked for Review*, *Answered & Marked for Review*, *Not Visited*).
+- **Standard Pharmacist CBT Interface**: Color-coded question states (*Answered*, *Not Answered*, *Marked for Review*, *Answered & Marked for Review*, *Not Visited*).
 - **Exam Controls**: Real-time countdown timer, 5-minute low-time alert toasts, dynamic question palette, and auto-submission on expiry.
 - **Scoring Engine**: Configurable positive and negative marking (standard -0.25 penalty).
 - **Post-Exam Analytics**: Question-by-question review, time-spent analysis, category-wise breakdown, and comprehensive clinical explanations.
@@ -169,22 +169,11 @@ npm run dev
 ```bash
 cd ../frontend
 npm install
-
-# Create environment file
-cp .env.example .env
-```
-
-Populate `frontend/.env`:
-```env
-VITE_API_URL=http://localhost:5000/api
-VITE_RAZORPAY_KEY_ID=rzp_test_YourKeyId
-```
-
-Start the frontend:
-```bash
 npm run dev
 # App running at http://localhost:5173
 ```
+
+<!-- > 💡 **Zero-Config Frontend**: No `.env` file is required for local frontend development! Vite's dev server automatically proxies all `/api` network requests directly to `http://localhost:5000` (configured in `vite.config.js`). Furthermore, Razorpay checkout keys are dynamically provisioned by the backend server on order creation. -->
 
 ---
 
@@ -230,7 +219,6 @@ The platform is pre-configured for automated continuous deployment on [Render](h
 
 For support, partnership inquiries, or exam questions:
 - **Email**: [pharmacode07exams@gmail.com](mailto:pharmacode07exams@gmail.com)
-- **Portal**: [PharmaCode07 Online](https://pharmacode07.onrender.com)
 
 ---
 
