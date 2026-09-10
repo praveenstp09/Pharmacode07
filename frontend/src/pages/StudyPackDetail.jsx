@@ -75,29 +75,51 @@ const StudyPackDetail = () => {
     }
   };
 
-  // Group unique folders
+  const isQuickRevision =
+    pack?.courseType === 'QuickRevision' ||
+    Boolean(pack?.title?.toLowerCase().includes('quick'));
+
+  // Standard B.Pharm Folders (Semesters)
   const folderNames = Array.from(new Set(items.map((it) => it.folderName))).filter(Boolean);
   const allUniqueSubjects = Array.from(new Set(items.map((it) => it.subjectName).filter(Boolean)));
 
-  const isQuickRevision =
-    pack?.courseType === 'QuickRevision' ||
-    pack?.title?.toLowerCase().includes('quick');
+  // Quick Notes: Group unique subjects from subjectName or falling back to folderName
+  const quickSubjects = React.useMemo(() => {
+    if (!isQuickRevision) return [];
+    const map = new Map();
+    items.forEach((it) => {
+      const raw = (it.subjectName?.trim() || it.folderName?.trim() || 'General').trim();
+      const lower = raw.toLowerCase();
+      if (!map.has(lower)) {
+        const displayName = raw.charAt(0).toUpperCase() + raw.slice(1);
+        map.set(lower, { key: lower, name: displayName, count: 0 });
+      }
+      map.get(lower).count += 1;
+    });
+    return Array.from(map.values());
+  }, [items, isQuickRevision]);
 
   // Filter items for current active folder (or all items if quick revision)
   const currentFolderItems = isQuickRevision
     ? items
     : items.filter((it) => it.folderName === activeFolder);
 
-  // Group unique subjects in current active folder (or all subjects if quick revision)
+  // Group unique subjects in current active folder (for B.Pharm semester view)
   const availableSubjects = isQuickRevision
-    ? allUniqueSubjects
+    ? []
     : Array.from(new Set(currentFolderItems.map((it) => it.subjectName).filter(Boolean)));
 
-  // Further filter items by activeSubject if selected
-  const displayedItems = currentFolderItems.filter((it) => {
-    if (activeSubject === 'All') return true;
-    return it.subjectName === activeSubject;
-  });
+  // Filter items to display
+  const displayedItems = isQuickRevision
+    ? items.filter((it) => {
+        if (activeSubject === 'All') return true;
+        const itSub = (it.subjectName?.trim() || it.folderName?.trim() || 'General').trim().toLowerCase();
+        return itSub === activeSubject.toLowerCase();
+      })
+    : currentFolderItems.filter((it) => {
+        if (activeSubject === 'All') return true;
+        return it.subjectName === activeSubject;
+      });
 
   const handleAddToCart = () => {
     if (!pack) return;
@@ -196,7 +218,7 @@ const StudyPackDetail = () => {
                 <div className="grid grid-cols-2 gap-3 pt-2 max-w-md">
                   <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                     <span className="text-slate-400 text-[11px] block font-semibold">📁 Subject Modules</span>
-                    <span className="font-bold text-sm sm:text-base text-white">{allUniqueSubjects.length || (items.length > 0 ? 1 : 0)} Subjects</span>
+                    <span className="font-bold text-sm sm:text-base text-white">{quickSubjects.length || (items.length > 0 ? 1 : 0)} Subjects</span>
                   </div>
                   <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                     <span className="text-slate-400 text-[11px] block font-semibold">📄 PDF Documents</span>
@@ -207,12 +229,12 @@ const StudyPackDetail = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                   <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                     <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 1</span>
-                    <span className="font-bold text-sm sm:text-base text-white">{folderNames.length || 1} Folders / Semesters</span>
+                    <span className="font-bold text-sm sm:text-base text-white">{folderNames.length || 1} Semesters</span>
                   </div>
-                  <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
+                  {/* <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                     <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 2</span>
                     <span className="font-bold text-sm sm:text-base text-white">{allUniqueSubjects.length || (items.length > 0 ? 1 : 0)} Subject Modules</span>
-                  </div>
+                  </div> */}
                   <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/10">
                     <span className="text-slate-400 text-[11px] block font-semibold">📁 Folder 3</span>
                     <span className="font-bold text-sm sm:text-base text-white">{items.length || pack.totalPdfs || 0} PDF Documents</span>
@@ -320,44 +342,96 @@ const StudyPackDetail = () => {
             </div>
           </div>
 
-          {/* Level 1: Folder / Semester Tabs (Hidden for Quick Notes) */}
+          {/* Level 1: Subject Tabs (for Quick Notes) OR Folder / Semester Tabs (for B.Pharm) */}
           {items.length > 0 ? (
             <div className="space-y-6">
-              {!isQuickRevision && folderNames.length > 0 && (
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin border-b border-slate-100">
-                {folderNames.map((folder) => {
-                  const count = items.filter((it) => it.folderName === folder).length;
-                  const isActive = activeFolder === folder;
-                  return (
+              {isQuickRevision ? (
+                /* Quick Notes: Subject Wise Filter Tabs */
+                quickSubjects.length > 0 && (
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin border-b border-slate-100">
                     <button
-                      key={folder}
-                      onClick={() => {
-                        setActiveFolder(folder);
-                        setActiveSubject('All');
-                      }}
+                      onClick={() => setActiveSubject('All')}
                       className={`flex items-center space-x-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm whitespace-nowrap transition cursor-pointer ${
-                        isActive
+                        activeSubject === 'All'
                           ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
                       }`}
                     >
-                      <Layers className="w-4 h-4" />
-                      <span>{folder}</span>
+                      <BookOpen className="w-4 h-4" />
+                      <span>All Subjects</span>
                       <span
                         className={`text-[11px] px-2 py-0.5 rounded-full font-extrabold ${
-                          isActive ? 'bg-blue-700 text-blue-100' : 'bg-slate-200 text-slate-700'
+                          activeSubject === 'All' ? 'bg-blue-700 text-blue-100' : 'bg-slate-200 text-slate-700'
                         }`}
                       >
-                        {count}
+                        {items.length}
                       </span>
                     </button>
-                  );
-                })}
-              </div>
-            )}
 
-            {/* Level 2: Subject Pill Selector (if available) */}
-              {availableSubjects.length > 0 && (
+                    {quickSubjects.map((sub) => {
+                      const isActive = activeSubject.toLowerCase() === sub.key;
+                      return (
+                        <button
+                          key={sub.key}
+                          onClick={() => setActiveSubject(sub.name)}
+                          className={`flex items-center space-x-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm whitespace-nowrap transition cursor-pointer ${
+                            isActive
+                              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                              : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          <Layers className="w-4 h-4" />
+                          <span>{sub.name}</span>
+                          <span
+                            className={`text-[11px] px-2 py-0.5 rounded-full font-extrabold ${
+                              isActive ? 'bg-blue-700 text-blue-100' : 'bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {sub.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
+                /* B.Pharm / Standard Semester-Wise Packages */
+                folderNames.length > 0 && (
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin border-b border-slate-100">
+                    {folderNames.map((folder) => {
+                      const count = items.filter((it) => it.folderName === folder).length;
+                      const isActive = activeFolder === folder;
+                      return (
+                        <button
+                          key={folder}
+                          onClick={() => {
+                            setActiveFolder(folder);
+                            setActiveSubject('All');
+                          }}
+                          className={`flex items-center space-x-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm whitespace-nowrap transition cursor-pointer ${
+                            isActive
+                              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                              : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          <Layers className="w-4 h-4" />
+                          <span>{folder}</span>
+                          <span
+                            className={`text-[11px] px-2 py-0.5 rounded-full font-extrabold ${
+                              isActive ? 'bg-blue-700 text-blue-100' : 'bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )
+              )}
+
+              {/* Level 2: Subject Pill Selector (if available in B.Pharm) */}
+              {!isQuickRevision && availableSubjects.length > 0 && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
                   <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider pr-2">
                     Filter Subject:
@@ -396,6 +470,7 @@ const StudyPackDetail = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {displayedItems.map((item) => {
                   const itemAvailable = isUnlocked || item.isFreeDemo;
+                  const itemSubject = (item.subjectName || (isQuickRevision ? item.folderName : '') || '').trim();
 
                   return (
                     <div
@@ -409,9 +484,9 @@ const StudyPackDetail = () => {
                       <div className="space-y-2">
                         {/* Tags / Sub-labels */}
                         <div className="flex flex-wrap items-center gap-2">
-                          {item.subjectName && (
+                          {itemSubject && (
                             <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md">
-                              {item.subjectName}
+                              {itemSubject}
                             </span>
                           )}
                           {item.chapterName && (

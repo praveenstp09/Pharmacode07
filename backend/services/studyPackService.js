@@ -1,4 +1,4 @@
-﻿import StudyPack from '../models/StudyPack.js';
+import StudyPack from '../models/StudyPack.js';
 import StudyPackItem from '../models/StudyPackItem.js';
 import Purchase from '../models/Purchase.js';
 import AppError from '../utils/AppError.js';
@@ -143,8 +143,14 @@ export const addItemToPack = async (packId, data) => {
     throw new AppError('Parent Study Material Package not found', 404);
   }
 
+  const isQuick = pack.courseType === 'QuickRevision' || (pack.title && pack.title.toLowerCase().includes('quick'));
+  const folderName = (data.folderName || data.subjectName || 'General').trim();
+  const subjectName = (data.subjectName || (isQuick ? folderName : '')).trim();
+
   const item = await StudyPackItem.create({
     ...data,
+    folderName,
+    subjectName,
     packId,
   });
 
@@ -155,7 +161,12 @@ export const addItemToPack = async (packId, data) => {
 };
 
 export const updateStudyPackItem = async (id, data) => {
-  const item = await StudyPackItem.findByIdAndUpdate(id, data, {
+  let updatePayload = { ...data };
+  if (updatePayload.folderName && !updatePayload.subjectName) {
+    updatePayload.subjectName = updatePayload.folderName.trim();
+  }
+
+  const item = await StudyPackItem.findByIdAndUpdate(id, updatePayload, {
     new: true,
     runValidators: true,
   });

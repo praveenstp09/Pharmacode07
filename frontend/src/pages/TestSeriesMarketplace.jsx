@@ -49,6 +49,7 @@ const TestSeriesMarketplace = () => {
     'MP Vyapam',
     'Bihar BTSC',
     'RRB',
+    'CISF',
     'State Exams',
   ];
   const categories = ['All', 'Competitive Exam', 'Model Paper', 'Previous Year'];

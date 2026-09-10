@@ -107,11 +107,24 @@ const AdminStudyPackTab = () => {
     }
   };
 
+  const currentSelectedPack = packs.find((p) => p._id === selectedPackId);
+  const isCurrentQuickNotes =
+    currentSelectedPack?.courseType === 'QuickRevision' ||
+    Boolean(currentSelectedPack?.title?.toLowerCase().includes('quick'));
+
   useEffect(() => {
     if (selectedPackId) {
       fetchPackItems(selectedPackId);
     }
   }, [selectedPackId]);
+
+  useEffect(() => {
+    if (isCurrentQuickNotes && newItem.folderName === 'Semester 1') {
+      setNewItem((prev) => ({ ...prev, folderName: '' }));
+    } else if (!isCurrentQuickNotes && !newItem.folderName) {
+      setNewItem((prev) => ({ ...prev, folderName: 'Semester 1' }));
+    }
+  }, [selectedPackId, isCurrentQuickNotes]);
 
   // Handle PDF Upload via Backend
   const handlePdfUpload = async (e) => {
@@ -259,7 +272,16 @@ const AdminStudyPackTab = () => {
     }
 
     try {
-      const res = await api.post(`/admin/study-packs/${selectedPackId}/items`, newItem);
+      const payload = {
+        ...newItem,
+        folderName: newItem.folderName.trim(),
+        subjectName: isCurrentQuickNotes
+          ? (newItem.subjectName?.trim() || newItem.folderName.trim())
+          : (newItem.subjectName?.trim() || ''),
+        chapterName: newItem.chapterName?.trim() || '',
+      };
+
+      const res = await api.post(`/admin/study-packs/${selectedPackId}/items`, payload);
       if (res.data.success) {
         showToast('PDF Item added to package successfully!', 'success');
         setPackItems((prev) => [...prev, res.data.data]);
@@ -270,6 +292,8 @@ const AdminStudyPackTab = () => {
           chapterName: '',
           pageCount: 0,
           isFreeDemo: false,
+          folderName: isCurrentQuickNotes ? prev.folderName : 'Semester 1',
+          subjectName: '',
         }));
         fetchPacks();
       }
@@ -746,7 +770,7 @@ const AdminStudyPackTab = () => {
                         <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
                           {item.folderName}
                         </span>
-                        {item.subjectName && (
+                        {item.subjectName && item.subjectName.toLowerCase() !== item.folderName?.toLowerCase() && (
                           <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded">
                             {item.subjectName}
                           </span>

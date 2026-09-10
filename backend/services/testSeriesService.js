@@ -14,15 +14,45 @@ export const listTestSeries = async (queryParams) => {
   const { category, examType, search, sort } = queryParams;
   let query = { published: true };
 
+  const andConditions = [];
+
   if (category && category !== 'All') {
-    query.category = category;
+    andConditions.push({ category });
   }
+
   if (examType && examType !== 'All') {
-    query.examType = examType;
+    if (examType === 'State Exams') {
+      const stateKeywords = ['GSSSB', 'OSSSC', 'UPSSSC', 'Vyapam', 'Bihar', 'BFUHS', 'State', 'JKSSB', 'WBHRB', 'DHS'];
+      andConditions.push({
+        $or: stateKeywords.flatMap((kw) => [
+          { examType: { $regex: kw, $options: 'i' } },
+          { title: { $regex: kw, $options: 'i' } },
+        ]),
+      });
+    } else {
+      const cleanExam = String(examType).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      andConditions.push({
+        $or: [
+          { examType: { $regex: cleanExam, $options: 'i' } },
+          { title: { $regex: cleanExam, $options: 'i' } },
+        ],
+      });
+    }
   }
-  if (search) {
-    const cleanSearch = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    query.title = { $regex: cleanSearch, $options: 'i' };
+
+  if (search && search.trim()) {
+    const cleanSearch = String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    andConditions.push({
+      $or: [
+        { title: { $regex: cleanSearch, $options: 'i' } },
+        { description: { $regex: cleanSearch, $options: 'i' } },
+        { examType: { $regex: cleanSearch, $options: 'i' } },
+      ],
+    });
+  }
+
+  if (andConditions.length > 0) {
+    query.$and = andConditions;
   }
 
   let sortOption = { createdAt: -1 };
