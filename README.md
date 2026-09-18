@@ -1,228 +1,266 @@
-# PharmaCode07
+# PharmaCode07 — Pharmacy CBT & Competitive Examination Platform
 
-> A modern, full-stack Computer-Based Test (CBT) examination simulator and pharmacy learning platform built for national and state-level pharmacist recruitment exams (GPAT, GSSSB, RRB, AIIMS, ESIC, and UPSSSC).
+> **Live Production URL:** [https://pharmacode07-9wva.onrender.com](https://pharmacode07-9wva.onrender.com)  
+> A high-throughput, full-stack Computer-Based Test (CBT) engine and academic preparation platform engineered specifically for national and state-level pharmacist recruitment examinations (RRB, ESIC, OSSSC, GSSSB, AIIMS CRE, CISF ASI, UPSSSC, and BFUHS).
 
-[![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Express.js](https://img.shields.io/badge/Express.js-4.19-black?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
-[![React](https://img.shields.io/badge/React-18.2-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/React-18.2-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-5.2-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas%20%2F%20Mongoose-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![Razorpay](https://img.shields.io/badge/Razorpay-Gateway-0C2340?style=flat-square&logo=razorpay&logoColor=blue)](https://razorpay.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas_8.3-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Razorpay](https://img.shields.io/badge/Razorpay-HMAC_SHA256-0C2340?style=flat-square&logo=razorpay&logoColor=blue)](https://razorpay.com/)
+[![Cloudinary](https://img.shields.io/badge/Cloudinary-Media_CDN-3448C5?style=flat-square&logo=cloudinary&logoColor=white)](https://cloudinary.com/)
 
 ---
 
-## 📌 Overview
+## 🏛️ System Architecture
 
-**PharmaCode07** bridges the gap between traditional pharmacy education and competitive government recruitment exams. It delivers a high-fidelity Computer-Based Test (CBT) environment modeled after official state and national pharmacist recruitment examinations, combined with organized PCI curriculum study notes, solved Previous Year Question papers (PYQs), and targeted non-technical revision modules.
+PharmaCode07 uses a **decoupled service-oriented architecture** designed for high availability, zero race-conditions during exam submissions, and secure digital paywall enforcement.
 
----
+```mermaid
+flowchart TD
+    subgraph Client ["Frontend Layer (Vite + React 18 SPA)"]
+        UI["Tailwind Design System & Lucide Icons"]
+        Context["Global State (AuthContext, CartContext, ToastContext)"]
+        CBT["CBT Exam Engine (Local Timer & Answer Reconciliation)"]
+        SEO["SEO Meta & Schema.org JSON-LD (React Helmet Async)"]
+    end
 
-## 🚀 Core Features
+    subgraph Gateway ["Reverse Proxy & Network Boundary"]
+        CDN["Cloudflare CDN & Render Static Edge"]
+        Rewrite["SPA Route Rewrites (/* -> /index.html)"]
+    end
 
-### 1. 🖥️ Interactive CBT Exam Simulator
-- **Standard Pharmacist CBT Interface**: Color-coded question states (*Answered*, *Not Answered*, *Marked for Review*, *Answered & Marked for Review*, *Not Visited*).
-- **Exam Controls**: Real-time countdown timer, 5-minute low-time alert toasts, dynamic question palette, and auto-submission on expiry.
-- **Scoring Engine**: Configurable positive and negative marking (standard -0.25 penalty).
-- **Post-Exam Analytics**: Question-by-question review, time-spent analysis, category-wise breakdown, and comprehensive clinical explanations.
+    subgraph Backend ["Backend API Layer (Express.js ES Modules)"]
+        Security["Middleware: Helmet, CORS, Rate Limiters, Mongo Sanitize"]
+        Router["Express REST Router (/api/*)"]
+        
+        subgraph Services ["Service Layer (Decoupled Business Logic)"]
+            AuthSvc["authService (HS256 JWT, OTP, Bcrypt)"]
+            PaySvc["paymentService (Razorpay HMAC-SHA256 & Atomic Free Checkout)"]
+            ExamSvc["testSeriesService (Anti-Scraping MCQ Aggregation)"]
+            AdminSvc["adminService (Bulk CSV/JSON Parser & Draft Mode)"]
+        end
+    end
 
-### 2. 📚 4 Learning Pillars
-- **Test Series Packages**: Full-length exam packages grouped into 3 structured folders (*Model Papers*, *Previous Year Papers*, *Subject-Wise CBT Drills*).
-- **Single Model Papers**: Standalone mock exams for rapid assessment and targeted practice.
-- **Study Notes Packages**: Organized curriculum notes (PCI B.Pharm Sem 1–8, D.Pharm 1st/2nd Year, and Quick Revision PDFs) with integrated in-browser preview and watermarked downloads.
-- **Non-Pharma Hub**: Comprehensive preparation for the non-technical sections (Reasoning, Numerical Ability, Monthly Current Affairs, and General Studies).
+    subgraph Storage ["Persistence & External Infrastructure"]
+        Mongo[("MongoDB Atlas (Mongoose 8)")]
+        Cloudinary[("Cloudinary Secure Media Storage")]
+        RazorpayGateway["Razorpay Banking Gateway"]
+        Mailer["Nodemailer TLS SMTP Relay"]
+    end
 
-### 3. 🛒 E-Commerce & Access Control
-- **User-Scoped Carts**: Cart state persists per authenticated user account, preventing data leakage on shared devices.
-- **Duplicate Prevention**: Automatic guards prevent students from re-purchasing enrolled packages.
-- **Dynamic Coupon Engine**: Percentage and flat-rate discount vouchers with atomic usage limits.
-- **Payment Flows**: Razorpay payment integration with HMAC-SHA256 verification and instant free-checkout bypass for zero-cost orders.
-- **Subscription Lifecycle**: Automatic 365-day validity management from date of purchase.
-
-### 4. ⚙️ Admin Management Cockpit
-- **Complete Content Management**: Create, publish, and edit test series, papers, questions, study packages, and non-pharma modules.
-- **Bulk MCQ Importer**: Smart text parser that ingests raw questions, options, answers, and subjects into database-ready format.
-- **Unpublished / Draft Mode**: Dedicated admin endpoints ensure drafts remain visible and editable prior to public release.
-- **Analytics & Support**: Track revenue, enrolled students, active subscriptions, and contact inquiries.
-
----
-
-## 🏗️ Architecture & Technical Highlights
-
-- **Service-Layer Backend**: Business logic is separated from route controllers into dedicated services (`paymentService`, `testSeriesService`, `studyPackService`, `authService`, `adminService`), ensuring clean, modular code.
-- **Unified Frontend Design System**: 10+ standardized components (`TestSeriesCard`, `StudyPackCard`, `SingleModelCard`, `HeroBanner`, `FilterPills`, `SearchInput`, `EmptyState`, `PriceDisplay`, `CouponForm`, `SEO`) eliminate duplicated markup across Home, Marketplaces, and Dashboards.
-- **Concurrency & Idempotency**: Atomic MongoDB updates (`findOneAndUpdate`) protect order processing and coupon counters against race conditions.
-- **Security Hardening**:
-  - ReDoS protection via regex escaping on query filters.
-  - Direct PDF scraping blocked on static uploads.
-  - Question bank scraping limited to 25 randomized questions per practice request.
-  - JWT algorithm pinned strictly to `HS256` with account lock verification.
-  - Rate limiting on authentication, practice quizzes, and file downloads.
-- **SEO & Social Optimization**:
-  - Dynamic page titles, meta descriptions, and canonical links managed by `react-helmet-async`.
-  - Rich Open Graph and Twitter Card previews for social sharing.
-  - Static `robots.txt` and `sitemap.xml` configured for search engine indexing.
-
----
-
-## 💻 Tech Stack
-
-| Layer | Technologies |
-| :--- | :--- |
-| **Frontend** | React 18, Vite 5, Tailwind CSS 3.4, React Router DOM 6, React Helmet Async, Lucide Icons, Axios |
-| **Backend** | Node.js 18+ (ES Modules), Express.js 4.19, Mongoose 8.3 |
-| **Database** | MongoDB Atlas |
-| **Authentication**| JWT (JSON Web Tokens) with HS256, bcryptjs, OTP Verification |
-| **Payments** | Razorpay Node.js SDK (HMAC SHA-256 signature validation) |
-| **Storage & Email**| Cloudinary, Multer, Nodemailer (TLS) |
-| **Security** | Helmet, express-rate-limit, express-mongo-sanitize, CORS policy |
+    Client --> Gateway
+    Gateway --> Backend
+    Router --> Security
+    Security --> Services
+    AuthSvc --> Mongo
+    AuthSvc --> Mailer
+    PaySvc --> Mongo
+    PaySvc --> RazorpayGateway
+    ExamSvc --> Mongo
+    AdminSvc --> Mongo
+    AdminSvc --> Cloudinary
+```
 
 ---
 
-## 📂 Project Structure
+## 💡 Engineering Highlights (What Makes It Production-Grade)
+
+### 1. High-Fidelity CBT Exam Simulation Engine
+- **State Reconciliation:** Maintains color-coded question state matrices (*Answered*, *Not Answered*, *Marked for Review*, *Answered & Marked for Review*, *Not Visited*) with instant palette navigation.
+- **Client-Side Fault Tolerance:** Countdown timer with automated background time synchronization prevents tab-freeze cheating; triggers automated atomic submission upon expiry.
+- **Dynamic Scoring Pipeline:** Configurable negative marking (-0.25 standard penalty) with instant post-exam analytics, difficulty-indexed breakdown, and clinical explanations.
+
+### 2. Concurrency-Safe Financial & Order Architecture
+- **Atomic Operations (`findOneAndUpdate`):** Zero double-spend vulnerability; atomic inventory decrements and coupon usage counter checks prevent race conditions during peak flash sales.
+- **Dual-Mode Checkout:** 
+  - **Paid Tier:** Server-generated order credentials validated via cryptographic HMAC-SHA256 signature verification.
+  - **Zero-Cost Tier:** Instant transactional bypass for 100% discount coupons and free diagnostic mock papers without calling external banking gateways.
+- **Strict Idempotency:** Guard rails at both frontend and database layers prevent duplicate enrollments for already purchased test series.
+
+### 3. Digital Asset Protection & Anti-Scraping Paywall
+- **Question Bank Scramble:** Free practice endpoints use MongoDB aggregation pipelines (`$sample`) capped at 25 randomized questions to protect proprietary intellectual property from bulk scraping.
+- **Protected Study Material Streaming:** Direct file access is blocked; study material PDFs require authenticated subscription claims with signed stream delivery.
+- **ReDoS Mitigation:** Regex-escaping sanitizers on user search queries protect Node.js event loops from regular expression denial-of-service vectors.
+
+### 4. Search Engine Optimization & Knowledge Graph Ingestion
+- **Schema.org Structured Data:** Validated `WebSite` and `EducationalOrganization` JSON-LD payloads embedded directly in the DOM, enabling native Google Site Name attribution and rich Google AI Mode synthesis.
+- **Multi-Resolution Visual Assets:** 48px, 96px, and 192px Google-compliant square favicons for high-DPI search snippets, mobile PWA app icons, and browser tabs.
+- **Dynamic Head Management:** `react-helmet-async` manages canonical URLs, Open Graph images, and Twitter Cards per route.
+
+---
+
+## 🎯 Platform Domain Modules
+
+PharmaCode07 delivers four distinct preparation pillars:
+
+| Pillar | Focus | Features |
+| :--- | :--- | :--- |
+| **Full CBT Test Series** | Central & State Pharmacist Recruitment | Structured 3-tier sub-folders (*Model Papers*, *Previous Year Papers*, *Subject-wise Drills*) with real exam timers for **RRB 2027**, **ESIC**, **OSSSC 2026**, **GSSSB**, **AIIMS CRE**, **CISF ASI**, **UPSSSC**, and **BFUHS**. |
+| **Single Model Papers** | Rapid Skill Benchmarking | Standalone, single-paper mock exams with instant performance scorecards. |
+| **PCI Study Packs** | Academic Curriculum Mastery | Unit-wise curated revision packs covering PCI B.Pharm (Semesters 1–8) and D.Pharm (Years 1–2). |
+| **Non-Pharma Hub** | Non-Technical Score Booster | Specialized modules for General Studies, Reasoning, Numerical Ability, and Monthly Current Affairs required by government recruitment boards. |
+
+---
+
+## 🛠️ Complete Technology Stack
+
+### Frontend
+- **Framework:** React 18.2 (Hooks, Custom Context Providers)
+- **Tooling:** Vite 5.2 (Fast HMR, optimized chunk splitting)
+- **Styling:** Tailwind CSS 3.4 (Fully responsive mobile-first UI, custom animations)
+- **Routing:** React Router DOM 6.23 (Client-side routing, protected route guards)
+- **SEO & Social:** React Helmet Async (Dynamic metadata injection, Open Graph, Twitter Cards)
+- **Icons & Effects:** Lucide React, Canvas-Confetti (Interactive celebratory feedback)
+- **HTTP Client:** Axios (Centralized request/response interceptors, 401 token handling)
+
+### Backend
+- **Runtime:** Node.js 18+ (Native ES Modules syntax)
+- **Framework:** Express.js 4.19 (RESTful API architecture)
+- **Database Driver:** Mongoose 8.3 (Strict schema validation, aggregation pipelines)
+- **Authentication:** JSON Web Tokens (JWT pinned to `HS256`), Bcrypt.js password hashing, Time-based OTP verification
+- **Payment Processing:** Razorpay Official Node SDK (Webhook verification, HMAC signatures)
+- **File Uploads & Storage:** Multer, Cloudinary SDK v2
+- **Email Delivery:** Nodemailer (Authenticated SMTP with TLS)
+- **Compression & Telemetry:** Compression (Gzip responses), Morgan logger
+
+### Security & Hardening
+- **HTTP Headers:** Helmet (Content Security Policy, frameguard, XSS protection)
+- **Rate Limiting:** `express-rate-limit` (Window-based throttling on auth and test submission routes)
+- **NoSQL Injection Defense:** `express-mongo-sanitize` (Sanitizes query payloads against `$where` and operator injections)
+- **CORS Policy:** Strict origin whitelisting bound to production client environment variables
+
+---
+
+## 📂 Repository Layout
 
 ```
 PharmaCode07/
 ├── backend/
-│   ├── config/             # MongoDB connection & Cloudinary setup
-│   ├── controllers/        # Request handling & response mapping
-│   ├── middleware/         # Auth (protect, adminOnly), Rate Limiters, Upload
-│   ├── models/             # Mongoose schemas (User, TestSeries, TestPaper, Order, etc.)
-│   ├── routes/             # API route definitions
-│   ├── scripts/            # Database CLI seeders & utilities
-│   ├── services/           # Business logic layer (payments, test series, study packs)
-│   ├── utils/              # Email notifier, upload helpers
-│   ├── server.js           # Express app bootstrap
+│   ├── config/             # MongoDB connection pool & Cloudinary integration
+│   ├── controllers/        # Express route handlers & payload controllers
+│   ├── middleware/         # JWT verification, Admin RBAC, Rate limiters, Multer
+│   ├── models/             # Mongoose schemas (User, TestSeries, TestPaper, Order, Coupon, etc.)
+│   ├── routes/             # RESTful route definitions
+│   ├── services/           # Decoupled business logic (Payment, Exam, Auth, Admin)
+│   ├── utils/              # Email templates, regex sanitizers, signature verifiers
+│   ├── server.js           # Express app bootstrap & middleware pipeline
 │   └── package.json
 │
 ├── frontend/
-│   ├── public/             # Static assets, favicon, robots.txt, sitemap.xml
+│   ├── public/             # Google 48px favicons, robots.txt, sitemap.xml
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── admin/      # Admin tabs (Test Series, Study Packs, etc.)
-│   │   │   ├── auth/       # OTP modal & authentication helpers
-│   │   │   ├── common/     # Reusable UI system (Cards, HeroBanner, SEO, Pills)
-│   │   │   ├── layout/     # Navbar, Footer, Mobile Bottom Navigation
-│   │   │   └── test/       # CBT Question Card, Quiz Timer, Palette
-│   │   ├── constants/      # Exam categories & PCI curriculum definitions
+│   │   │   ├── admin/      # Admin dashboard management panels
+│   │   │   ├── auth/       # OTP verification modals & login guards
+│   │   │   ├── common/     # 10+ Standardized UI primitives (Cards, Badges, SearchInput)
+│   │   │   ├── layout/     # Navbar, Responsive Footer, MobileBottomNav
+│   │   │   └── test/       # CBT Examination Simulator, QuizTimer, QuestionPalette
+│   │   ├── constants/      # Exam categories, PCI syllabus definitions
 │   │   ├── context/        # AuthContext, CartContext, ToastContext
-│   │   ├── pages/          # Application routes & screens
-│   │   ├── services/       # Centralized Axios client
-│   │   ├── App.jsx         # Route registry & ProtectedRoute guards
-│   │   └── main.jsx        # App mounting with HelmetProvider
-│   ├── index.html          # HTML entry with default SEO meta
-│   ├── tailwind.config.js
-│   ├── vite.config.js
+│   │   ├── pages/          # Application views & marketplace screens
+│   │   ├── services/       # Centralized Axios API client with interceptors
+│   │   ├── App.jsx         # Client-side router table & access boundaries
+│   │   └── main.jsx        # Root application entry
+│   ├── index.html          # HTML5 entry with Schema.org JSON-LD structured data
+│   ├── tailwind.config.js  # Custom theme palette & layout rules
+│   ├── vite.config.js      # Dev server proxy & production build pipeline
 │   └── package.json
 │
-├── render.yaml             # Render infrastructure blueprint
+├── render.yaml             # Render infrastructure-as-code blueprint
 └── README.md
 ```
 
 ---
 
-## ⚡ Quick Start & Local Setup
+## 📡 Key REST API Endpoints
+
+| Category | Method | Path | Access | Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| **Authentication** | `POST` | `/api/auth/register` | Public | Register new candidate with profile |
+| | `POST` | `/api/auth/login` | Public | Authenticate candidate / admin, issue JWT |
+| | `GET` | `/api/auth/me` | Protected | Fetch current session & active enrollments |
+| | `POST` | `/api/auth/verify-email` | Public | Validate OTP registration code |
+| **Exam Engine** | `GET` | `/api/test-series` | Public | Query published test series packages |
+| | `GET` | `/api/test-series/paper/:id` | Enrolled | Fetch full CBT question paper for attempt |
+| | `POST` | `/api/attempts/submit` | Protected | Submit CBT exam response & calculate score |
+| | `GET` | `/api/test-series/practice-mcqs`| Public | Capped random practice questions (anti-scraping) |
+| **Orders & Payments**| `POST` | `/api/payments/create-order` | Protected | Initialize verified Razorpay checkout order |
+| | `POST` | `/api/payments/verify` | Protected | Verify HMAC-SHA256 signature & grant access |
+| | `POST` | `/api/payments/free-checkout`| Protected | Zero-cost atomic order fulfillment |
+| | `POST` | `/api/coupons/apply` | Protected | Atomic coupon redemption validation |
+| **Admin Cockpit** | `GET` | `/api/admin/test-series` | Admin | Query test series including draft states |
+| | `POST` | `/api/admin/test-papers` | Admin | Create test paper with question sub-schemas |
+| | `GET` | `/api/admin/stats` | Admin | Real-time platform revenue & candidate metrics |
+
+---
+
+## ⚙️ Local Development Setup
 
 ### Prerequisites
-- **Node.js** (v18.0.0 or higher)
-- **MongoDB Atlas** account or local MongoDB instance
-- **Razorpay** test keys (for checkout integration)
+- Node.js (v18.0.0 or higher)
+- MongoDB Atlas cluster or local MongoDB instance
+- Active Razorpay Test Mode keys (for checkout simulation)
 
-### 1. Clone Repository
+### 1. Clone & Install
 ```bash
-git clone https://github.com/praveenstp09/Pharmacode07.git
-cd Pharmacode07
+git clone https://github.com/pharmacode07/pharmacode07-platform.git
+cd pharmacode07-platform
 ```
 
-### 2. Backend Setup
+### 2. Backend Configuration
 ```bash
 cd backend
 npm install
-
-# Create environment file
 cp .env.example .env
 ```
 
-Populate `backend/.env`:
+Configure `backend/.env`:
 ```env
 PORT=5000
 NODE_ENV=development
 CLIENT_URL=http://localhost:5173
-MONGO_URI=mongodb+srv://<user>:<password>@cluster0.mongodb.net/pharmacode?retryWrites=true&w=majority
-JWT_SECRET=your_jwt_secret_key
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_signing_secret
 JWT_EXPIRE=30d
-RAZORPAY_KEY_ID=rzp_test_YourKeyId
-RAZORPAY_KEY_SECRET=YourRazorpaySecret
+RAZORPAY_KEY_ID=rzp_test_YourKey
+RAZORPAY_KEY_SECRET=YourSecret
 EMAIL_SERVICE=gmail
-EMAIL_USER=pharmacode07exams@gmail.com
+EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
-EMAIL_FROM=Pharmacode07 <pharmacode07exams@gmail.com>
+EMAIL_FROM=PharmaCode07 <your_email@gmail.com>
 ```
 
-Start the backend:
+Start backend development server:
 ```bash
 npm run dev
-# Server running at http://localhost:5000
+# Running at http://localhost:5000
 ```
 
-### 3. Frontend Setup
+### 3. Frontend Configuration
 ```bash
 cd ../frontend
 npm install
 npm run dev
-# App running at http://localhost:5173
+# Running at http://localhost:5173
 ```
-
-<!-- > 💡 **Zero-Config Frontend**: No `.env` file is required for local frontend development! Vite's dev server automatically proxies all `/api` network requests directly to `http://localhost:5000` (configured in `vite.config.js`). Furthermore, Razorpay checkout keys are dynamically provisioned by the backend server on order creation. -->
-
----
-
-## 📡 API Overview
-
-| Module | Method | Endpoint | Description | Auth |
-| :--- | :--- | :--- | :--- | :--- |
-| **Auth** | `POST` | `/api/auth/register` | Register student account | Public |
-| | `POST` | `/api/auth/login` | Student / Admin login | Public |
-| | `GET` | `/api/auth/me` | Current profile & purchases | User |
-| | `POST` | `/api/auth/verify-email` | Verify email with OTP | Public |
-| **Test Series**| `GET` | `/api/test-series` | List published test packages | Public |
-| | `GET` | `/api/test-series/:id` | Package details & folder content | Optional |
-| | `GET` | `/api/test-series/paper/:id`| Exam questions for CBT attempt | Enrolled |
-| | `GET` | `/api/test-series/practice-mcqs`| Capped free practice questions | Public |
-| **CBT Attempts**| `POST` | `/api/attempts/submit` | Submit test attempt & grade | User |
-| | `GET` | `/api/attempts/:id` | View scorecard & rationales | User |
-| **Study Notes**| `GET` | `/api/materials/packs` | List study notes packages | Public |
-| | `GET` | `/api/materials/packs/:slug`| Get study pack details | Optional |
-| **Single Models**| `GET` | `/api/single-models` | List standalone CBT papers | Public |
-| **Non-Pharma** | `GET` | `/api/non-pharma` | List aptitude/reasoning items | Public |
-| **Payments** | `POST` | `/api/payments/create-order` | Create verified Razorpay order | User |
-| | `POST` | `/api/payments/verify` | Verify HMAC signature & enroll | User |
-| | `POST` | `/api/payments/free-checkout`| Zero-cost enrollment | User |
-| | `POST` | `/api/coupons/apply` | Validate discount voucher | User |
-| **Admin** | `GET` | `/api/admin/test-series` | List all series (with drafts) | Admin |
-| | `POST` | `/api/admin/test-series` | Create / update test series | Admin |
-| | `POST` | `/api/admin/test-papers` | Create paper & question bank | Admin |
-| | `GET` | `/api/admin/stats` | Analytics & revenue overview | Admin |
+*Note: Vite dev server automatically proxies `/api` network requests to `http://localhost:5000` via `vite.config.js`.*
 
 ---
 
-## 🌐 Production Deployment
+## 🚀 Production Deployment Architecture
 
-The platform is pre-configured for automated continuous deployment on [Render](https://render.com/) via [`render.yaml`](./render.yaml):
+The platform is hosted on **Render** utilizing automated continuous deployment:
 
-1. **Backend Web Service**: Node.js environment running `npm install && npm start` on `backend/`.
-2. **Frontend Static Site**: Built with `npm install && npm run build` from `frontend/dist`, configured with SPA client rewrite rules.
-
----
-
-## 🤝 Support & Contact
-
-For support, partnership inquiries, or exam questions:
-- **Email**: [pharmacode07exams@gmail.com](mailto:pharmacode07exams@gmail.com)
+- **Frontend:** Render Static Site with Cloudflare edge caching, HTTP/2, automated SSL, and client rewrite rule (`/* -> /index.html`).
+- **Backend:** Render Node.js Web Service operating in production mode behind a reverse proxy with automated health checks.
+- **Database:** MongoDB Atlas M0/M10 replica set with TLS encryption at rest and in transit.
 
 ---
 
-<p align="center">
-  Built with dedication for pharmacy students & competitive exam aspirants across India 🇮🇳<br>
-  <strong>PharmaCode07 &copy; 2026</strong>
-</p>
+## 📄 License & Attribution
+
+Developed with high engineering standards for competitive pharmacy exam candidates across India.  
+**PharmaCode07 © 2026. All rights reserved.**
